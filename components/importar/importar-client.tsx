@@ -125,114 +125,100 @@ export function ImportarClient() {
         });
       }
 
-      for (let i = 0; i < rows.length; i++) {
-        const fila = rows[i];
-        const nombreCliente = fila["NOMBRE CLIENTE"]?.trim();
-        if (!nombreCliente) continue;
+      const productosColumnas = [
+        "ESPECIAL DE DANIEL", "HONEY CHIPOTLE", "LEMON PEPPER",
+        "TERIYAKI", "SABOR DE TEMPORADA", "STICKS 26GR", "JERKY 35GR", "JERKY 81GR",
+      ];
 
-        try {
-          // Buscar o crear cliente
-          let clienteId: string | null = null;
-          const nit = fila["NIT"]?.trim() || null;
+      // Filtrar filas válidas
+      const filasValidas = rows.filter(f => f["NOMBRE CLIENTE"]?.trim());
 
-          const { data: clienteExistente } = await supabase
-            .from("clientes")
-            .select("id")
-            .eq("nombre", nombreCliente)
-            .maybeSingle();
+      // 1. Insertar todos los clientes únicos de una vez
+      const clientesUnicos = new Map<string, FilaExcel>();
+      filasValidas.forEach(f => {
+        const nombre = f["NOMBRE CLIENTE"].trim();
+        if (!clientesUnicos.has(nombre)) clientesUnicos.set(nombre, f);
+      });
 
-          if (clienteExistente) {
-            clienteId = clienteExistente.id;
-          } else {
-            const { data: nuevoCliente } = await supabase
-              .from("clientes")
-              .insert({
-                nombre: nombreCliente,
-                nit: nit,
-                telefono: fila["NÚMERO DE TELÉFONO"]?.trim() || null,
-                direccion: fila["DIRECCIÓN DE ENTREGA"]?.trim() || null,
-                medio_contacto: fila["MEDIO DE CONTACTO"]?.trim() || null,
-                tipo: fila["TIPO DE CLIENTE"]?.trim() || "EXISTENTE",
-              })
-              .select()
-              .single();
-            if (nuevoCliente) clienteId = nuevoCliente.id;
-          }
+      const clientesArr = Array.from(clientesUnicos.values()).map(f => ({
+        nombre: f["NOMBRE CLIENTE"].trim(),
+        nit: f["NIT"]?.trim() || null,
+        telefono: f["NÚMERO DE TELÉFONO"]?.trim() || null,
+        direccion: f["DIRECCIÓN DE ENTREGA"]?.trim() || null,
+        medio_contacto: f["MEDIO DE CONTACTO"]?.trim() || null,
+        tipo: f["TIPO DE CLIENTE"]?.trim() || "EXISTENTE",
+      }));
 
-          const totalQ = parseTotal(fila["TOTAL Q"]);
-          const totalUnidades = parseInt(String(fila["TOTAL UNIDADES"])) || 0;
+      // Insertar en lotes de 500
+      const BATCH = 500;
+      for (let i = 0; i < clientesArr.length; i += BATCH) {
+        await supabase.from("clientes").upsert(
+          clientesArr.slice(i, i + BATCH),
+          { onConflict: "nombre", ignoreDuplicates: true }
+        );
+      }
 
-          // Crear orden
-          const { data: orden, error: ordenError } = await supabase
-            .from("ordenes")
-            .insert({
-              fecha_ingreso: fila["Marca temporal"] ? new Date(fila["Marca temporal"]).toISOString() : new Date().toISOString(),
-              fecha_entrega_comprometida: parseDate(fila["FECHA ENTREGA"]),
-              fecha_cobro: parseDate(fila["FECHA DE COBRO"]),
-              cliente_id: clienteId,
-              venta_a: fila["VENTA A"]?.trim() || null,
-              venta_de: fila["VENTA DE"]?.trim() || fila["VENTA CLIENTE"]?.trim() || null,
-              estado_produccion: mapEstadoProduccion(fila["ESTADO PRODUCCIÓN"] || ""),
-              estado_comercial: mapEstadoComercial(fila["ESTADO BACKOFFICE"] || ""),
-              medio_envio: fila["MEDIO DE ENVIÓ"]?.trim() || null,
-              metodo_pago: fila["MÉTODO DE PAGO"]?.trim() || null,
-              forma_pago: fila["FORMA DE PAGO"]?.trim() || null,
-              vendedor: fila["USUARIO"]?.trim() || fila["PEDIDO SUBIDO POR"]?.trim() || null,
-              usuario_registro: fila["PEDIDO SUBIDO POR"]?.trim() || null,
-              comentarios: fila["COMENTARIOS ADICIONALES"]?.trim() || null,
-              total_unidades: totalUnidades,
-              total_q: totalQ,
-              mes: fila["MES"]?.trim() || getMesActual(),
-              tipo_cliente: fila["TIPO DE CLIENTE"]?.trim() || null,
-            })
-            .select()
-            .single();
+      // Obtener IDs de todos los clientes
+      const { data: todosClientes } = await supabase
+        .from("clientes").select("id, nombre");
+      const clienteIdMap = new Map<string, string>();
+      (todosClientes ?? []).forEach(c => clienteIdMap.set(c.nombre, c.id));
 
-          if (ordenError || !orden) {
-            errores++;
-            mensajes.push(`Fila ${i + 2}: Error al crear orden para ${nombreCliente}`);
-            continue;
-          }
+      // 2. Insertar órdenes en lotes
+      const ordenesArr = filasValidas.map(f => ({
+        fecha_ingreso: f["Marca temporal"] ? new Date(f["Marca temporal"]).toISOString() : new Date().toISOString(),
+        fecha_entrega_comprometida: parseDate(f["FECHA ENTREGA"]),
+        fecha_cobro: parseDate(f["FECHA DE COBRO"]),
+        cliente_id: clienteIdMap.get(f["NOMBRE CLIENTE"].trim()) || null,
+        venta_a: f["VENTA A"]?.trim() || null,
+        venta_de: f["VENTA DE"]?.trim() || f["VENTA CLIENTE"]?.trim() || null,
+        estado_produccion: mapEstadoProduccion(f["ESTADO PRODUCCIÓN"] || ""),
+        estado_comercial: mapEstadoComercial(f["ESTADO BACKOFFICE"] || ""),
+        medio_envio: f["MEDIO DE ENVIÓ"]?.trim() || null,
+        metodo_pago: f["MÉTODO DE PAGO"]?.trim() || null,
+        forma_pago: f["FORMA DE PAGO"]?.trim() || null,
+        vendedor: f["USUARIO"]?.trim() || f["PEDIDO SUBIDO POR"]?.trim() || null,
+        usuario_registro: f["PEDIDO SUBIDO POR"]?.trim() || null,
+        comentarios: f["COMENTARIOS ADICIONALES"]?.trim() || null,
+        total_unidades: parseInt(String(f["TOTAL UNIDADES"])) || 0,
+        total_q: parseTotal(f["TOTAL Q"]),
+        mes: f["MES"]?.trim() || getMesActual(),
+        tipo_cliente: f["TIPO DE CLIENTE"]?.trim() || null,
+      }));
 
-          // Crear items de productos
-          const productosColumnas: { col: string; nombre: string }[] = [
-            { col: "ESPECIAL DE DANIEL", nombre: "ESPECIAL DE DANIEL" },
-            { col: "HONEY CHIPOTLE", nombre: "HONEY CHIPOTLE" },
-            { col: "LEMON PEPPER", nombre: "LEMON PEPPER" },
-            { col: "TERIYAKI", nombre: "TERIYAKI" },
-            { col: "SABOR DE TEMPORADA", nombre: "SABOR DE TEMPORADA" },
-            { col: "STICKS 26GR", nombre: "STICKS 26GR" },
-            { col: "JERKY 35GR", nombre: "JERKY 35GR" },
-            { col: "JERKY 81GR", nombre: "JERKY 81GR" },
-          ];
+      const ordenesInsertadas: { id: string }[] = [];
+      for (let i = 0; i < ordenesArr.length; i += BATCH) {
+        const { data } = await supabase
+          .from("ordenes")
+          .insert(ordenesArr.slice(i, i + BATCH))
+          .select("id");
+        if (data) ordenesInsertadas.push(...data);
+      }
 
-          const items = productosColumnas
-            .filter((p) => {
-              const qty = parseInt(String(fila[p.col as keyof FilaExcel])) || 0;
-              return qty > 0;
-            })
-            .map((p) => {
-              const qty = parseInt(String(fila[p.col as keyof FilaExcel])) || 0;
-              const productoId = productoMap[p.nombre];
-              const precio = precioMap[p.nombre] || 0;
-              return {
-                orden_id: orden.id,
-                producto_id: productoId,
-                cantidad: qty,
-                precio_unitario: precio,
-              };
-            })
-            .filter((i) => i.producto_id);
+      exitosos = ordenesInsertadas.length;
+      errores = filasValidas.length - exitosos;
 
-          if (items.length > 0) {
-            await supabase.from("orden_items").insert(items);
-          }
+      // 3. Insertar items en lotes
+      const todosItems: object[] = [];
+      filasValidas.forEach((f, idx) => {
+        const ordenId = ordenesInsertadas[idx]?.id;
+        if (!ordenId) return;
+        productosColumnas.forEach(col => {
+          const qty = parseInt(String(f[col as keyof FilaExcel])) || 0;
+          if (qty <= 0) return;
+          const productoId = productoMap[col];
+          if (!productoId) return;
+          todosItems.push({
+            orden_id: ordenId,
+            producto_id: productoId,
+            cantidad: qty,
+            precio_unitario: precioMap[col] || 0,
+          });
+        });
+      });
 
-          exitosos++;
-        } catch (err) {
-          errores++;
-          mensajes.push(`Fila ${i + 2}: Error inesperado para ${nombreCliente}`);
-        }
+      for (let i = 0; i < todosItems.length; i += BATCH) {
+        await supabase.from("orden_items").insert(todosItems.slice(i, i + BATCH));
       }
 
       setResultado({ exitosos, errores, mensajes });
