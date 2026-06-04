@@ -86,7 +86,7 @@ export function OrdenesClient({
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  const meses = [...new Set(ordenes.map((o) => o.mes).filter(Boolean))];
+  const meses = Array.from(new Set(ordenes.map((o) => o.mes).filter(Boolean)));
 
   return (
     <div className="p-6 space-y-5">
