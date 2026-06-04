@@ -103,7 +103,7 @@ export function ImportarClient() {
       const buffer = await file.arrayBuffer();
       const wb = read(buffer);
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: FilaExcel[] = utils.sheet_to_json(ws, { raw: false });
+      const rows: FilaExcel[] = utils.sheet_to_json(ws, { raw: false, defval: "", range: 1 });
 
       const supabase = createClient();
       const mensajes: string[] = [];
