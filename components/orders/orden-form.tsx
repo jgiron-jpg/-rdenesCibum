@@ -151,7 +151,7 @@ export function OrdenForm({
     }
   }
 
-  const marcas = [...new Set(productos.map((p) => p.marca))];
+  const marcas = Array.from(new Set(productos.map((p) => p.marca)));
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-6 max-w-4xl">
