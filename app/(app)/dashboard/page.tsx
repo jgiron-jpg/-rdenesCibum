@@ -1,21 +1,35 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
+import type { Orden } from "@/types";
+import { Loader2 } from "lucide-react";
 
-export const revalidate = 0;
+export default function DashboardPage() {
+  const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+  useEffect(() => {
+    async function fetchData() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("ordenes")
+        .select("*, cliente:clientes(*), orden_items(*, producto:productos(*))")
+        .order("created_at", { ascending: false });
+      setOrdenes(data ?? []);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
-  const { data: ordenes } = await supabase
-    .from("ordenes")
-    .select(
-      `
-      *,
-      cliente:clientes(*),
-      orden_items(*, producto:productos(*))
-    `
-    )
-    .order("created_at", { ascending: false });
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  return <DashboardClient ordenes={ordenes ?? []} />;
+  return <DashboardClient ordenes={ordenes} />;
 }
