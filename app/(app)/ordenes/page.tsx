@@ -17,11 +17,12 @@ export default function OrdenesPage() {
       const [{ data: o }, { data: c }] = await Promise.all([
         supabase
           .from("ordenes")
-          .select("*, cliente:clientes(*), orden_items(*, producto:productos(*))")
-          .order("created_at", { ascending: false }),
+          .select("*, cliente:clientes(id, nombre, nit)")
+          .order("created_at", { ascending: false })
+          .limit(500),
         supabase.from("clientes").select("*").order("nombre"),
       ]);
-      setOrdenes(o ?? []);
+      setOrdenes((o as Orden[]) ?? []);
       setClientes(c ?? []);
       setLoading(false);
     }

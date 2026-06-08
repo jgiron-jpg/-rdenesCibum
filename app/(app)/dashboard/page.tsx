@@ -15,9 +15,10 @@ export default function DashboardPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("ordenes")
-        .select("*, cliente:clientes(*), orden_items(*, producto:productos(*))")
-        .order("created_at", { ascending: false });
-      setOrdenes(data ?? []);
+        .select("*, cliente:clientes(id, nombre, nit)")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      setOrdenes((data as Orden[]) ?? []);
       setLoading(false);
     }
     fetchData();
