@@ -37,6 +37,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
+    // Si el usuario está pendiente, no lo dejamos entrar
+    if (user.user_metadata?.status === "pending") {
+      return supabaseResponse;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

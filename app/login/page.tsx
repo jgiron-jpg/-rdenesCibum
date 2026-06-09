@@ -40,16 +40,27 @@ export default function LoginPage() {
     setError(null);
     setSuccess(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { nombre, role: rol } },
+      options: { data: { nombre, role: rol, status: "pending" } },
     });
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      setSuccess("¡Cuenta creada! Ya podés iniciar sesión.");
+    } else if (data.user) {
+      // Enviar solicitud de aprobación al admin
+      await fetch("/api/auth/request-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: data.user.id,
+          email,
+          nombre,
+          role: rol,
+        }),
+      });
+      setSuccess("✅ Solicitud enviada. El administrador recibirá un email para aprobar tu acceso.");
       setModo("login");
       setPassword("");
       setLoading(false);
