@@ -10,7 +10,6 @@ import {
   Plus,
   Sun,
   Moon,
-  FileUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -21,7 +20,6 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/ordenes", icon: ClipboardList, label: "Órdenes" },
   { href: "/reportes", icon: BarChart3, label: "Reportes" },
-  { href: "/importar", icon: FileUp, label: "Importar Excel" },
 ];
 
 export function Sidebar() {
