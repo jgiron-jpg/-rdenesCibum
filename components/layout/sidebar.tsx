@@ -10,11 +10,14 @@ import {
   Plus,
   Sun,
   Moon,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CibumLogo } from "@/components/ui/cibum-logo";
 import { useTheme } from "@/components/ui/theme-provider";
+import { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -26,6 +29,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
+  const [open, setOpen] = useState(false);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -33,8 +37,8 @@ export function Sidebar() {
     router.push("/login");
   }
 
-  return (
-    <aside className="w-60 flex-shrink-0 flex flex-col bg-card border-r border-border h-screen sticky top-0">
+  const NavContent = () => (
+    <>
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
         <CibumLogo className="w-10 h-10" />
@@ -48,6 +52,7 @@ export function Sidebar() {
       <div className="px-4 py-4">
         <Link
           href="/ordenes/nueva"
+          onClick={() => setOpen(false)}
           className="flex items-center gap-2 w-full bg-foreground hover:opacity-80 text-background text-sm font-semibold rounded-lg px-3 py-2.5 transition-opacity"
         >
           <Plus className="w-4 h-4" />
@@ -63,6 +68,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                 active
@@ -94,6 +100,42 @@ export function Sidebar() {
           Cerrar sesión
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-card border-b border-border">
+        <div className="flex items-center gap-2">
+          <CibumLogo className="w-8 h-8" />
+          <span className="text-sm font-bold">Cibum</span>
+        </div>
+        <button onClick={() => setOpen(!open)} className="p-2 text-muted-foreground hover:text-foreground">
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile menu overlay */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <div className={cn(
+        "md:hidden fixed top-0 left-0 z-40 h-full w-64 bg-card border-r border-border flex flex-col transition-transform duration-300",
+        open ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <NavContent />
+      </div>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-60 flex-shrink-0 flex-col bg-card border-r border-border h-screen sticky top-0">
+        <NavContent />
+      </aside>
+    </>
   );
 }
