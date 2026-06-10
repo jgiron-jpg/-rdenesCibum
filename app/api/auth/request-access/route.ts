@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         from: "Cibum Órdenes <onboarding@resend.dev>",
-        to: "joacogironblanco@gmail.com",
+        to: "jgiron@unis.edu.gt",
         subject: `Solicitud de acceso — ${nombre || email}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
