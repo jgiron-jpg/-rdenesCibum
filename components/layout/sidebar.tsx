@@ -12,6 +12,7 @@ import {
   Moon,
   Menu,
   X,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/ordenes", icon: ClipboardList, label: "Órdenes" },
   { href: "/reportes", icon: BarChart3, label: "Reportes" },
+  { href: "/admin/usuarios", icon: Users, label: "Usuarios" },
 ];
 
 export function Sidebar() {
