@@ -19,7 +19,7 @@ export default function OrdenesPage() {
           .from("ordenes")
           .select("*, cliente:clientes(id, nombre, nit)")
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(3000),
         supabase.from("clientes").select("*").order("nombre"),
       ]);
       setOrdenes((o as Orden[]) ?? []);

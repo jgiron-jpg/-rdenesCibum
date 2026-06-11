@@ -17,7 +17,7 @@ export default function DashboardPage() {
         .from("ordenes")
         .select("*, cliente:clientes(id, nombre, nit)")
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(3000);
       setOrdenes((data as Orden[]) ?? []);
       setLoading(false);
     }
