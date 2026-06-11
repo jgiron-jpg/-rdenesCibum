@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CibumLogo } from "@/components/ui/cibum-logo";
 import { useTheme } from "@/components/ui/theme-provider";
+import { Notificaciones } from "@/components/layout/notificaciones";
 import { useState } from "react";
 
 const navItems = [
@@ -44,9 +45,12 @@ export function Sidebar() {
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
         <CibumLogo className="w-10 h-10" />
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-bold">Cibum</p>
           <p className="text-xs text-muted-foreground">Gestión de Órdenes</p>
+        </div>
+        <div className="hidden md:block">
+          <Notificaciones />
         </div>
       </div>
 
@@ -113,9 +117,12 @@ export function Sidebar() {
           <CibumLogo className="w-8 h-8" />
           <span className="text-sm font-bold">Cibum</span>
         </div>
-        <button onClick={() => setOpen(!open)} className="p-2 text-muted-foreground hover:text-foreground">
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <Notificaciones />
+          <button onClick={() => setOpen(!open)} className="p-2 text-muted-foreground hover:text-foreground">
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu overlay */}
