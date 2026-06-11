@@ -7,6 +7,7 @@ import { AdminGuard } from "@/components/inventario/admin-guard";
 import {
   SKUS, calcularStock, getMinimos, getOptimos, semaforoSku,
   colorSemaforo, dotSemaforo, consumoPromedioSemanal, diasCobertura,
+  fetchTodosMovimientos,
   type Distribuidor, type Movimiento, type ConfigInventario, type StockPorSku,
 } from "@/lib/inventario";
 import { Loader2, Plus, ClipboardCheck, TrendingUp, Package, AlertTriangle, ExternalLink } from "lucide-react";
@@ -29,14 +30,14 @@ function InventarioDashboard() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
-      const [{ data: dists }, { data: movs }, { data: configs }] = await Promise.all([
+      const [{ data: dists }, movs, { data: configs }] = await Promise.all([
         supabase.from("distribuidores").select("*").eq("activo", true).order("nombre"),
-        supabase.from("inventario_movimientos").select("*").order("fecha", { ascending: false }).limit(2000),
+        fetchTodosMovimientos(supabase),
         supabase.from("inventario_config").select("*"),
       ]);
 
       const result: DistribuidorData[] = (dists ?? []).map((d: Distribuidor) => {
-        const movsDist = ((movs ?? []) as Movimiento[]).filter(m => m.distribuidor_id === d.id);
+        const movsDist = (movs as Movimiento[]).filter(m => m.distribuidor_id === d.id);
         const config = ((configs ?? []) as ConfigInventario[]).find(c => c.distribuidor_id === d.id) ?? null;
         const stock = calcularStock(movsDist);
         const minimos = getMinimos(config);

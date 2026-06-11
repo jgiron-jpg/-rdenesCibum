@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AdminGuard } from "@/components/inventario/admin-guard";
 import {
   SKUS, calcularStock, getMinimos, getOptimos, semaforoSku, colorSemaforo,
-  consumoPromedioSemanal, diasCobertura,
+  consumoPromedioSemanal, diasCobertura, fetchTodosMovimientos,
   type Distribuidor, type Movimiento, type ConfigInventario,
 } from "@/lib/inventario";
 import { formatDate } from "@/lib/utils";
@@ -31,13 +31,13 @@ function DetalleDistribuidor() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
-      const [{ data: d }, { data: movs }, { data: cfg }] = await Promise.all([
+      const [{ data: d }, movs, { data: cfg }] = await Promise.all([
         supabase.from("distribuidores").select("*").eq("id", id).single(),
-        supabase.from("inventario_movimientos").select("*").eq("distribuidor_id", id).order("fecha", { ascending: false }),
+        fetchTodosMovimientos(supabase, { distribuidorId: id as string }),
         supabase.from("inventario_config").select("*").eq("distribuidor_id", id).maybeSingle(),
       ]);
       setDistribuidor(d);
-      setMovimientos((movs ?? []) as Movimiento[]);
+      setMovimientos(movs);
       setConfig(cfg as ConfigInventario | null);
       setLoading(false);
     }

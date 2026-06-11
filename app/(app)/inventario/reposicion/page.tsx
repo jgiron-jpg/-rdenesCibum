@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AdminGuard } from "@/components/inventario/admin-guard";
 import {
   SKUS, calcularStock, getOptimos, consumoPromedioSemanal, diasCobertura,
-  nivelRiesgo, colorRiesgo,
+  nivelRiesgo, colorRiesgo, fetchTodosMovimientos,
   type Distribuidor, type Movimiento, type ConfigInventario, type Riesgo,
 } from "@/lib/inventario";
 import { ArrowLeft, Loader2, Download } from "lucide-react";
@@ -30,15 +30,15 @@ function Reposicion() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
-      const [{ data: dists }, { data: movs }, { data: configs }] = await Promise.all([
+      const [{ data: dists }, movs, { data: configs }] = await Promise.all([
         supabase.from("distribuidores").select("*").eq("activo", true).order("nombre"),
-        supabase.from("inventario_movimientos").select("*").limit(2000),
+        fetchTodosMovimientos(supabase),
         supabase.from("inventario_config").select("*"),
       ]);
 
       const result: FilaReposicion[] = [];
       for (const d of (dists ?? []) as Distribuidor[]) {
-        const movsDist = ((movs ?? []) as Movimiento[]).filter(m => m.distribuidor_id === d.id);
+        const movsDist = (movs as Movimiento[]).filter(m => m.distribuidor_id === d.id);
         const config = ((configs ?? []) as ConfigInventario[]).find(c => c.distribuidor_id === d.id) ?? null;
         const stock = calcularStock(movsDist);
         const optimos = getOptimos(config);

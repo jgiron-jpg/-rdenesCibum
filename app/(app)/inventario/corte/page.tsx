@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { AdminGuard } from "@/components/inventario/admin-guard";
-import { SKUS, calcularStock, stockVacio, type Distribuidor, type Movimiento, type SkuKey, type StockPorSku } from "@/lib/inventario";
+import { SKUS, calcularStock, stockVacio, fetchTodosMovimientos, type Distribuidor, type SkuKey, type StockPorSku } from "@/lib/inventario";
 import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 function CorteForm() {
@@ -31,13 +31,9 @@ function CorteForm() {
   useEffect(() => {
     if (!distribuidorId) return;
     setCalculando(true);
-    createClient()
-      .from("inventario_movimientos")
-      .select("*")
-      .eq("distribuidor_id", distribuidorId)
-      .lte("fecha", fechaCorte)
-      .then(({ data }) => {
-        setTeorico(calcularStock((data ?? []) as Movimiento[]));
+    fetchTodosMovimientos(createClient(), { distribuidorId, hastaFecha: fechaCorte })
+      .then((movs) => {
+        setTeorico(calcularStock(movs));
         setCalculando(false);
       });
   }, [distribuidorId, fechaCorte]);

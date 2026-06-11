@@ -70,6 +70,32 @@ export function stockVacio(): StockPorSku {
   };
 }
 
+// Traer TODOS los movimientos paginando — Supabase corta en 1000 filas por request
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchTodosMovimientos(
+  supabase: any,
+  filtro?: { distribuidorId?: string; hastaFecha?: string }
+): Promise<Movimiento[]> {
+  const PAGE = 1000;
+  let from = 0;
+  const all: Movimiento[] = [];
+  for (;;) {
+    let q = supabase
+      .from("inventario_movimientos")
+      .select("*")
+      .order("fecha", { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (filtro?.distribuidorId) q = q.eq("distribuidor_id", filtro.distribuidorId);
+    if (filtro?.hastaFecha) q = q.lte("fecha", filtro.hastaFecha);
+    const { data, error } = await q;
+    if (error || !data) break;
+    all.push(...(data as Movimiento[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // Calcular stock actual: suma de todos los movimientos
 export function calcularStock(movimientos: Movimiento[]): StockPorSku {
   const stock = stockVacio();
