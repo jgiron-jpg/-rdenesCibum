@@ -38,16 +38,11 @@ export function OrdenForm({
   const router = useRouter();
   const editando = !!ordenExistente;
   const [loading, setLoading] = useState(false);
-  const clientes = initialClientes;
 
   // Cliente
-  const [clienteId, setClienteId] = useState(ordenExistente?.cliente_id ?? "");
-  const [nombreClienteRed, setNombreClienteRed] = useState(ordenExistente?.cliente?.nombre ?? "");
-
-  // Solo puntos de venta (con NIT) para el dropdown — no clientes individuales
-  const clientesPuntoDeVenta = useMemo(
-    () => initialClientes.filter(c => c.nit && c.nit.trim() && c.nit.trim().toUpperCase() !== "CF"),
-    [initialClientes]
+  const [clienteId] = useState(ordenExistente?.cliente_id ?? "");
+  const [nombreClienteRed, setNombreClienteRed] = useState(
+    ordenExistente?.venta_a === "CLIENTE REDES SOCIALES" ? (ordenExistente?.cliente?.nombre ?? "") : ""
   );
 
   // Orden fields — precargados si estamos editando
@@ -115,13 +110,17 @@ export function OrdenForm({
     try {
       let finalClienteId = clienteId;
 
-      // Cliente de redes sociales: buscar por nombre o crear automáticamente
-      if (ventaA === "CLIENTE REDES SOCIALES" && nombreClienteRed.trim()) {
-        const nombre = nombreClienteRed.trim();
+      // Determinar el nombre del cliente según el tipo de venta
+      const nombreCliente = ventaA === "CLIENTE REDES SOCIALES"
+        ? nombreClienteRed.trim()
+        : puntoDe.trim();
+
+      if (nombreCliente) {
+        // Buscar cliente existente por nombre, o crearlo
         const { data: existente } = await supabase
           .from("clientes")
           .select("id")
-          .ilike("nombre", nombre)
+          .ilike("nombre", nombreCliente)
           .maybeSingle();
 
         if (existente) {
@@ -130,11 +129,11 @@ export function OrdenForm({
           const { data: created } = await supabase
             .from("clientes")
             .insert({
-              nombre,
-              telefono: telefonoRed || null,
-              direccion: direccionRed || null,
-              medio_contacto: medioContactoRed || null,
-              tipo: "NUEVO",
+              nombre: nombreCliente,
+              telefono: ventaA === "CLIENTE REDES SOCIALES" ? telefonoRed || null : null,
+              direccion: ventaA === "CLIENTE REDES SOCIALES" ? direccionRed || null : null,
+              medio_contacto: ventaA === "CLIENTE REDES SOCIALES" ? medioContactoRed || null : "PUNTO DE VENTA",
+              tipo: ventaA === "CLIENTE REDES SOCIALES" ? "NUEVO" : "EXISTENTE",
             })
             .select()
             .single();
@@ -241,34 +240,6 @@ export function OrdenForm({
         </h1>
       </div>
 
-      {/* Cliente */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Cliente</h3>
-
-        {ventaA === "CLIENTE REDES SOCIALES" ? (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Nombre del cliente</label>
-            <input
-              value={nombreClienteRed}
-              onChange={(e) => setNombreClienteRed(e.target.value)}
-              placeholder="Nombre completo del cliente"
-              className={inputClass}
-            />
-          </div>
-        ) : (
-          <select value={clienteId} onChange={(e) => {
-            setClienteId(e.target.value);
-            const c = clientes.find(cl => cl.id === e.target.value);
-            if (c) setTipoCliente(c.tipo ?? "EXISTENTE");
-          }} className={inputClass}>
-            <option value="">Seleccionar punto de venta...</option>
-            {clientesPuntoDeVenta.map(c => (
-              <option key={c.id} value={c.id}>{c.nombre} {c.nit ? `(NIT: ${c.nit})` : ""}</option>
-            ))}
-          </select>
-        )}
-      </div>
-
       {/* Detalles */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Detalles</h3>
@@ -362,8 +333,17 @@ export function OrdenForm({
       {/* Datos de contacto — solo para cliente de redes sociales */}
       {ventaA === "CLIENTE REDES SOCIALES" && (
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">Datos de contacto (redes sociales)</h3>
+          <h3 className="text-sm font-semibold text-foreground">Datos del cliente (redes sociales)</h3>
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs text-muted-foreground mb-1">Nombre del cliente</label>
+              <input
+                value={nombreClienteRed}
+                onChange={(e) => setNombreClienteRed(e.target.value)}
+                placeholder="Nombre completo del cliente"
+                className={inputClass}
+              />
+            </div>
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Número de teléfono</label>
               <input value={telefonoRed} onChange={e => setTelefonoRed(e.target.value)}
