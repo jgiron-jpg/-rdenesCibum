@@ -81,9 +81,9 @@ export function DashboardClient({ ordenes: initial }: { ordenes: Orden[] }) {
               {[
                 "PENDIENTE",
                 "FACTURADO",
-                "GESTION_PROGRAMADA",
-                "GUIA_GENERADA",
-                "ENVIADO",
+                "ENTREGADO",
+                "COBRADO",
+                "CANCELADO",
               ].map((estado) => {
                 const count = ordenes.filter(
                   (o) => o.estado_comercial === estado

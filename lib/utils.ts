@@ -83,12 +83,9 @@ export const ESTADOS_PRODUCCION = [
 export const ESTADOS_COMERCIAL = [
   "PENDIENTE",
   "FACTURADO",
-  "GESTION_PROGRAMADA",
-  "GUIA_GENERADA",
-  "ENVIADO",
   "ENTREGADO",
-  "CANCELADO",
   "COBRADO",
+  "CANCELADO",
 ] as const;
 
 export const VENDEDORES = ["KEVIN", "OSMAN", "ESTUARDO"];

@@ -178,7 +178,7 @@ export function OrdenDetalle({
           </div>
 
           <div className="flex gap-1 mb-4">
-            {ESTADOS_COMERCIAL.slice(0, 6).map((e, i) => (
+            {ESTADOS_COMERCIAL.slice(0, 4).map((e, i) => (
               <div
                 key={e}
                 className={`flex-1 h-1.5 rounded-full transition-colors ${
