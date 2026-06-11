@@ -14,13 +14,14 @@ import {
   X,
   Users,
   Activity,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CibumLogo } from "@/components/ui/cibum-logo";
 import { useTheme } from "@/components/ui/theme-provider";
 import { Notificaciones } from "@/components/layout/notificaciones";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -30,11 +31,24 @@ const navItems = [
   { href: "/admin/usuarios", icon: Users, label: "Usuarios" },
 ];
 
+const adminItems = [
+  { href: "/inventario", icon: Boxes, label: "Inventario" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      setIsAdmin(user?.user_metadata?.role === "admin");
+    });
+  }, []);
+
+  const items = isAdmin ? [...navItems, ...adminItems] : navItems;
 
   async function handleLogout() {
     const supabase = createClient();
@@ -70,7 +84,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 space-y-1">
-        {navItems.map(({ href, icon: Icon, label }) => {
+        {items.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
