@@ -17,7 +17,7 @@ interface Evento {
 
 const SEEN_KEY = "cibum-notif-seen";
 
-export function Notificaciones() {
+export function Notificaciones({ align = "right" }: { align?: "left" | "right" }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<string>("");
@@ -129,7 +129,10 @@ export function Notificaciones() {
           {/* Overlay para cerrar al hacer clic afuera */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className={cn(
+            "absolute mt-2 w-80 max-w-[calc(100vw-2rem)] bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden",
+            align === "left" ? "left-0" : "right-0"
+          )}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Actividad reciente</h3>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
@@ -168,6 +171,14 @@ export function Notificaciones() {
                 ))
               )}
             </div>
+
+            <Link
+              href="/actividad"
+              onClick={() => setOpen(false)}
+              className="block text-center text-sm text-foreground font-medium px-4 py-3 border-t border-border hover:bg-secondary transition-colors"
+            >
+              Ver toda la actividad →
+            </Link>
           </div>
         </>
       )}

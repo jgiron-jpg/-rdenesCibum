@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Users,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/ordenes", icon: ClipboardList, label: "Órdenes" },
   { href: "/reportes", icon: BarChart3, label: "Reportes" },
+  { href: "/actividad", icon: Activity, label: "Actividad" },
   { href: "/admin/usuarios", icon: Users, label: "Usuarios" },
 ];
 
@@ -50,7 +52,7 @@ export function Sidebar() {
           <p className="text-xs text-muted-foreground">Gestión de Órdenes</p>
         </div>
         <div className="hidden md:block">
-          <Notificaciones />
+          <Notificaciones align="left" />
         </div>
       </div>
 
