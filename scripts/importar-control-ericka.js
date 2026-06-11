@@ -69,6 +69,8 @@ async function main() {
     if (!r || !r[2]) continue; // sin referencia → fila vacía
     const ref = String(r[2]).trim();
     if (!ref) continue;
+    // Saltar filas de resumen — no son movimientos
+    if (ref.toLowerCase() === "inventario actual") continue;
 
     const cantidades = {
       especial_daniel: parseNum(r[3]),
@@ -84,7 +86,7 @@ async function main() {
     if (total === 0 && !ref.toLowerCase().startsWith("recibo")) continue; // fila sin datos
 
     const esRecibo = ref.toLowerCase().startsWith("recibo");
-    const esAjuste = /ajuste|cambio/i.test(ref);
+    const esAjuste = /ajuste|cambio|cuadre|inventario/i.test(ref);
 
     if (esRecibo) {
       const f = parseFechaRecibo(ref);
