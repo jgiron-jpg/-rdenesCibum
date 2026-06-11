@@ -11,13 +11,10 @@ import {
   METODOS_PAGO,
   FORMAS_PAGO,
   MEDIO_CONTACTO_OPTIONS,
-  ESTADOS_PRODUCCION,
-  ESTADOS_COMERCIAL,
-  labelEstado,
   getMesActual,
 } from "@/lib/utils";
-import { PUNTOS_DE_VENTA, PRECIOS_POR_CANAL, PRECIOS_DEFAULT, getPrecio } from "@/lib/precios";
-import { ArrowLeft, Plus, Minus, Loader2, UserPlus } from "lucide-react";
+import { PUNTOS_DE_VENTA, getPrecio } from "@/lib/precios";
+import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
 
 interface ItemRow {
   producto_id: string;
@@ -41,15 +38,17 @@ export function OrdenForm({
   const router = useRouter();
   const editando = !!ordenExistente;
   const [loading, setLoading] = useState(false);
-  const [clientes, setClientes] = useState(initialClientes);
-  const [showNewCliente, setShowNewCliente] = useState(false);
+  const clientes = initialClientes;
 
   // Cliente
   const [clienteId, setClienteId] = useState(ordenExistente?.cliente_id ?? "");
-  const [newCliente, setNewCliente] = useState({
-    nombre: "", nit: "", telefono: "", direccion: "",
-    medio_contacto: "WHATSAPP", tipo: "NUEVO",
-  });
+  const [nombreClienteRed, setNombreClienteRed] = useState(ordenExistente?.cliente?.nombre ?? "");
+
+  // Solo puntos de venta (con NIT) para el dropdown — no clientes individuales
+  const clientesPuntoDeVenta = useMemo(
+    () => initialClientes.filter(c => c.nit && c.nit.trim() && c.nit.trim().toUpperCase() !== "CF"),
+    [initialClientes]
+  );
 
   // Orden fields — precargados si estamos editando
   const esPuntoDeVenta = ordenExistente?.venta_a === "PUNTO DE VENTA";
@@ -116,12 +115,30 @@ export function OrdenForm({
     try {
       let finalClienteId = clienteId;
 
-      if (showNewCliente && newCliente.nombre) {
-        const { data: created } = await supabase
-          .from("clientes").insert(newCliente).select().single();
-        if (created) {
-          finalClienteId = created.id;
-          setClientes(prev => [...prev, created]);
+      // Cliente de redes sociales: buscar por nombre o crear automáticamente
+      if (ventaA === "CLIENTE REDES SOCIALES" && nombreClienteRed.trim()) {
+        const nombre = nombreClienteRed.trim();
+        const { data: existente } = await supabase
+          .from("clientes")
+          .select("id")
+          .ilike("nombre", nombre)
+          .maybeSingle();
+
+        if (existente) {
+          finalClienteId = existente.id;
+        } else {
+          const { data: created } = await supabase
+            .from("clientes")
+            .insert({
+              nombre,
+              telefono: telefonoRed || null,
+              direccion: direccionRed || null,
+              medio_contacto: medioContactoRed || null,
+              tipo: "NUEVO",
+            })
+            .select()
+            .single();
+          if (created) finalClienteId = created.id;
         }
       }
 
@@ -226,59 +243,29 @@ export function OrdenForm({
 
       {/* Cliente */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-foreground">Cliente</h3>
-          <button type="button" onClick={() => setShowNewCliente(!showNewCliente)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <UserPlus className="w-3.5 h-3.5" />
-            {showNewCliente ? "Seleccionar existente" : "Nuevo cliente"}
-          </button>
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">Cliente</h3>
 
-        {!showNewCliente ? (
+        {ventaA === "CLIENTE REDES SOCIALES" ? (
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">Nombre del cliente</label>
+            <input
+              value={nombreClienteRed}
+              onChange={(e) => setNombreClienteRed(e.target.value)}
+              placeholder="Nombre completo del cliente"
+              className={inputClass}
+            />
+          </div>
+        ) : (
           <select value={clienteId} onChange={(e) => {
             setClienteId(e.target.value);
             const c = clientes.find(cl => cl.id === e.target.value);
             if (c) setTipoCliente(c.tipo ?? "EXISTENTE");
           }} className={inputClass}>
-            <option value="">Seleccionar cliente...</option>
-            {clientes.map(c => (
+            <option value="">Seleccionar punto de venta...</option>
+            {clientesPuntoDeVenta.map(c => (
               <option key={c.id} value={c.id}>{c.nombre} {c.nit ? `(NIT: ${c.nit})` : ""}</option>
             ))}
           </select>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Nombre *", key: "nombre", required: true },
-              { label: "NIT (CF si aplica)", key: "nit" },
-              { label: "Teléfono", key: "telefono" },
-              { label: "Dirección", key: "direccion" },
-            ].map(({ label, key, required }) => (
-              <div key={key}>
-                <label className="block text-xs text-muted-foreground mb-1">{label}</label>
-                <input value={newCliente[key as keyof typeof newCliente]}
-                  onChange={(e) => setNewCliente(p => ({ ...p, [key]: e.target.value }))}
-                  required={required} className={inputClass} />
-              </div>
-            ))}
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Medio contacto</label>
-              <select value={newCliente.medio_contacto}
-                onChange={(e) => setNewCliente(p => ({ ...p, medio_contacto: e.target.value }))}
-                className={inputClass}>
-                {MEDIO_CONTACTO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Tipo cliente</label>
-              <select value={newCliente.tipo}
-                onChange={(e) => setNewCliente(p => ({ ...p, tipo: e.target.value }))}
-                className={inputClass}>
-                <option value="NUEVO">NUEVO</option>
-                <option value="EXISTENTE">EXISTENTE</option>
-              </select>
-            </div>
-          </div>
         )}
       </div>
 
@@ -353,20 +340,6 @@ export function OrdenForm({
             <select value={formaPago} onChange={e => setFormaPago(e.target.value)} className={inputClass}>
               <option value="">Seleccionar...</option>
               {["CONTADO", "CREDITO"].map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Estado Producción</label>
-            <select value={estadoProduccion} onChange={e => setEstadoProduccion(e.target.value)} className={inputClass}>
-              {ESTADOS_PRODUCCION.map(e => <option key={e} value={e}>{labelEstado(e)}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Estado Comercial</label>
-            <select value={estadoComercial} onChange={e => setEstadoComercial(e.target.value)} className={inputClass}>
-              {ESTADOS_COMERCIAL.map(e => <option key={e} value={e}>{labelEstado(e)}</option>)}
             </select>
           </div>
 
