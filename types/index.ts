@@ -62,6 +62,7 @@ export interface Orden {
   forma_pago: string | null;
   vendedor: string | null;
   usuario_registro: string | null;
+  usuario_red?: string | null;
   comentarios: string | null;
   total_unidades: number | null;
   total_q: number | null;

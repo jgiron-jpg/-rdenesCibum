@@ -11,6 +11,9 @@ import {
   METODOS_PAGO,
   FORMAS_PAGO,
   MEDIO_CONTACTO_OPTIONS,
+  ESTADOS_PRODUCCION,
+  ESTADOS_COMERCIAL,
+  labelEstado,
   getMesActual,
 } from "@/lib/utils";
 import { PUNTOS_DE_VENTA, PRECIOS_POR_CANAL, PRECIOS_DEFAULT, getPrecio } from "@/lib/precios";
@@ -61,6 +64,14 @@ export function OrdenForm({
   const [formaPago, setFormaPago] = useState(ordenExistente?.forma_pago ?? "CONTADO");
   const [comentarios, setComentarios] = useState(ordenExistente?.comentarios ?? "");
   const [tipoCliente, setTipoCliente] = useState(ordenExistente?.tipo_cliente ?? "EXISTENTE");
+  const [estadoProduccion, setEstadoProduccion] = useState(ordenExistente?.estado_produccion ?? "RECIBIDO");
+  const [estadoComercial, setEstadoComercial] = useState(ordenExistente?.estado_comercial ?? "PENDIENTE");
+
+  // Datos de contacto para cliente de redes sociales
+  const [telefonoRed, setTelefonoRed] = useState("");
+  const [direccionRed, setDireccionRed] = useState("");
+  const [medioContactoRed, setMedioContactoRed] = useState("");
+  const [usuarioRed, setUsuarioRed] = useState(ordenExistente?.usuario_red ?? "");
 
   // Items — precargados si estamos editando
   const [items, setItems] = useState<Record<string, number>>(() => {
@@ -134,15 +145,30 @@ export function OrdenForm({
         fecha_cobro: fechaCobro || null,
         venta_a: ventaAFinal || null,
         venta_de: ventaDeFinal || null,
+        estado_produccion: estadoProduccion,
+        estado_comercial: estadoComercial,
         vendedor: vendedor || null,
         medio_envio: medioEnvio || null,
         metodo_pago: metodoPago || null,
         forma_pago: formaPago || null,
         comentarios: comentarios || null,
         tipo_cliente: tipoCliente,
+        usuario_red: usuarioRed || null,
         total_unidades: totalUnidades,
         total_q: totalQ,
       };
+
+      // Si es cliente de redes sociales, actualizar datos de contacto del cliente
+      if (ventaA === "CLIENTE REDES SOCIALES" && finalClienteId && (telefonoRed || direccionRed || medioContactoRed)) {
+        await supabase
+          .from("clientes")
+          .update({
+            ...(telefonoRed && { telefono: telefonoRed }),
+            ...(direccionRed && { direccion: direccionRed }),
+            ...(medioContactoRed && { medio_contacto: medioContactoRed }),
+          })
+          .eq("id", finalClienteId);
+      }
 
       let ordenId: string;
 
@@ -329,13 +355,67 @@ export function OrdenForm({
               {["CONTADO", "CREDITO"].map(f => <option key={f} value={f}>{f}</option>)}
             </select>
           </div>
+
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">Estado Producción</label>
+            <select value={estadoProduccion} onChange={e => setEstadoProduccion(e.target.value)} className={inputClass}>
+              {ESTADOS_PRODUCCION.map(e => <option key={e} value={e}>{labelEstado(e)}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">Estado Comercial</label>
+            <select value={estadoComercial} onChange={e => setEstadoComercial(e.target.value)} className={inputClass}>
+              {ESTADOS_COMERCIAL.map(e => <option key={e} value={e}>{labelEstado(e)}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">Tipo cliente</label>
+            <select value={tipoCliente} onChange={e => setTipoCliente(e.target.value)} className={inputClass}>
+              <option value="NUEVO">NUEVO</option>
+              <option value="EXISTENTE">EXISTENTE</option>
+            </select>
+          </div>
         </div>
+
         <div>
           <label className="block text-xs text-muted-foreground mb-1">Comentarios</label>
           <textarea value={comentarios} onChange={e => setComentarios(e.target.value)}
             rows={2} className={`${inputClass} resize-none`} />
         </div>
       </div>
+
+      {/* Datos de contacto — solo para cliente de redes sociales */}
+      {ventaA === "CLIENTE REDES SOCIALES" && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">Datos de contacto (redes sociales)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">Número de teléfono</label>
+              <input value={telefonoRed} onChange={e => setTelefonoRed(e.target.value)}
+                placeholder="Ej: 5555-1234" className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">Dirección de entrega</label>
+              <input value={direccionRed} onChange={e => setDireccionRed(e.target.value)}
+                placeholder="Dirección completa" className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">Medio de contacto</label>
+              <select value={medioContactoRed} onChange={e => setMedioContactoRed(e.target.value)} className={inputClass}>
+                <option value="">Seleccionar...</option>
+                {MEDIO_CONTACTO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">Usuario (red social)</label>
+              <input value={usuarioRed} onChange={e => setUsuarioRed(e.target.value)}
+                placeholder="Ej: @cliente_ig" className={inputClass} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Productos */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
