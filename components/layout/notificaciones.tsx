@@ -27,49 +27,58 @@ export function Notificaciones() {
   }, []);
 
   const fetchEventos = useCallback(async () => {
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const [{ data: ordenes }, { data: historial }] = await Promise.all([
-      supabase
-        .from("ordenes")
-        .select("id, created_at, usuario_registro, venta_de, cliente:clientes(nombre)")
-        .order("created_at", { ascending: false })
-        .limit(25),
-      supabase
-        .from("orden_historial")
-        .select("id, orden_id, campo_cambiado, estado_nuevo, usuario, fecha")
-        .order("fecha", { ascending: false })
-        .limit(25),
-    ]);
+      const [{ data: ordenes }, { data: historial }] = await Promise.all([
+        supabase
+          .from("ordenes")
+          .select("id, created_at, usuario_registro, venta_de, cliente:clientes(nombre)")
+          .order("created_at", { ascending: false })
+          .limit(25),
+        supabase
+          .from("orden_historial")
+          .select("id, orden_id, campo_cambiado, estado_nuevo, usuario, fecha")
+          .order("fecha", { ascending: false })
+          .limit(25),
+      ]);
 
-    const evs: Evento[] = [];
+      const evs: Evento[] = [];
 
-    (ordenes ?? []).forEach((o) => {
-      const cliente = (o.cliente as { nombre: string } | null)?.nombre ?? o.venta_de ?? "cliente";
-      evs.push({
-        id: `orden-${o.id}`,
-        tipo: "nueva_orden",
-        ordenId: o.id,
-        titulo: `Nueva orden — ${cliente}`,
-        detalle: o.usuario_registro ? `Registrada por ${o.usuario_registro}` : "Registrada",
-        fecha: o.created_at,
+      (ordenes ?? []).forEach((o) => {
+        if (!o.created_at) return;
+        const clienteData = o.cliente as { nombre: string } | { nombre: string }[] | null;
+        const cliente = Array.isArray(clienteData)
+          ? clienteData[0]?.nombre
+          : clienteData?.nombre;
+        evs.push({
+          id: `orden-${o.id}`,
+          tipo: "nueva_orden",
+          ordenId: o.id,
+          titulo: `Nueva orden — ${cliente ?? o.venta_de ?? "cliente"}`,
+          detalle: o.usuario_registro ? `Registrada por ${o.usuario_registro}` : "Registrada",
+          fecha: o.created_at,
+        });
       });
-    });
 
-    (historial ?? []).forEach((h) => {
-      const area = h.campo_cambiado === "estado_produccion" ? "Producción" : "Comercial";
-      evs.push({
-        id: `hist-${h.id}`,
-        tipo: "cambio_estado",
-        ordenId: h.orden_id,
-        titulo: `${area} → ${labelEstado(h.estado_nuevo)}`,
-        detalle: h.usuario ? `Por ${h.usuario}` : "",
-        fecha: h.fecha,
+      (historial ?? []).forEach((h) => {
+        if (!h.fecha || !h.orden_id) return;
+        const area = h.campo_cambiado === "estado_produccion" ? "Producción" : "Comercial";
+        evs.push({
+          id: `hist-${h.id}`,
+          tipo: "cambio_estado",
+          ordenId: h.orden_id,
+          titulo: `${area} → ${labelEstado(h.estado_nuevo ?? "")}`,
+          detalle: h.usuario ? `Por ${h.usuario}` : "",
+          fecha: h.fecha,
+        });
       });
-    });
 
-    evs.sort((a, b) => b.fecha.localeCompare(a.fecha));
-    setEventos(evs.slice(0, 40));
+      evs.sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""));
+      setEventos(evs.slice(0, 40));
+    } catch (err) {
+      console.error("Error cargando notificaciones:", err);
+    }
   }, []);
 
   useEffect(() => {

@@ -15,12 +15,24 @@ export function formatQ(amount: number | null) {
 
 export function formatDate(date: string | null) {
   if (!date) return "—";
-  return format(new Date(date), "dd/MM/yyyy", { locale: es });
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, "dd/MM/yyyy", { locale: es });
+  } catch {
+    return "—";
+  }
 }
 
 export function formatDateTime(date: string | null) {
   if (!date) return "—";
-  return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: es });
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, "dd/MM/yyyy HH:mm", { locale: es });
+  } catch {
+    return "—";
+  }
 }
 
 export function getMesActual() {
