@@ -91,8 +91,8 @@ export const ESTADOS_COMERCIAL = [
   "COBRADO",
 ] as const;
 
-export const VENDEDORES = ["PINGUE", "ERICKA", "CAEX", "OTRO"];
-export const MEDIOS_ENVIO = ["PINGUE", "CAEX", "OTRO"];
+export const VENDEDORES = ["KEVIN", "OSMAN", "ESTUARDO"];
+export const MEDIOS_ENVIO = ["FORZA", "PINGUE", "ERICKA", "CAEX", "OTRO"];
 export const METODOS_PAGO = ["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "TARJETA"];
 export const FORMAS_PAGO = ["CONTADO", "CREDITO"];
 export const VENTA_A_OPTIONS = ["PUNTO DE VENTA", "CLIENTE REDES SOCIALES"];
