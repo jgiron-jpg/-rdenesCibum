@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { Cliente, Producto } from "@/types";
+import type { Cliente, Producto, Orden } from "@/types";
 import {
   VENDEDORES,
   MEDIOS_ENVIO,
@@ -28,39 +28,49 @@ export function OrdenForm({
   clientes: initialClientes,
   productos,
   userEmail,
+  ordenExistente,
 }: {
   clientes: Cliente[];
   productos: Producto[];
   userEmail: string;
-  ordenId?: string;
+  ordenExistente?: Orden;
 }) {
   const router = useRouter();
+  const editando = !!ordenExistente;
   const [loading, setLoading] = useState(false);
   const [clientes, setClientes] = useState(initialClientes);
   const [showNewCliente, setShowNewCliente] = useState(false);
 
   // Cliente
-  const [clienteId, setClienteId] = useState("");
+  const [clienteId, setClienteId] = useState(ordenExistente?.cliente_id ?? "");
   const [newCliente, setNewCliente] = useState({
     nombre: "", nit: "", telefono: "", direccion: "",
     medio_contacto: "WHATSAPP", tipo: "NUEVO",
   });
 
-  // Orden fields
-  const [fechaEntrega, setFechaEntrega] = useState("");
-  const [fechaCobro, setFechaCobro] = useState("");
-  const [ventaA, setVentaA] = useState(""); // "PUNTO DE VENTA" | "CLIENTE REDES SOCIALES"
-  const [puntoDe, setPuntoDe] = useState(""); // punto de venta específico
-  const [ventaDe, setVentaDe] = useState("");
-  const [vendedor, setVendedor] = useState("");
-  const [medioEnvio, setMedioEnvio] = useState("");
-  const [metodoPago, setMetodoPago] = useState("");
-  const [formaPago, setFormaPago] = useState("CONTADO");
-  const [comentarios, setComentarios] = useState("");
-  const [tipoCliente, setTipoCliente] = useState("EXISTENTE");
+  // Orden fields — precargados si estamos editando
+  const esPuntoDeVenta = ordenExistente?.venta_a === "PUNTO DE VENTA";
+  const [fechaEntrega, setFechaEntrega] = useState(ordenExistente?.fecha_entrega_comprometida ?? "");
+  const [fechaCobro, setFechaCobro] = useState(ordenExistente?.fecha_cobro ?? "");
+  const [ventaA, setVentaA] = useState(ordenExistente?.venta_a ?? "");
+  const [puntoDe, setPuntoDe] = useState(esPuntoDeVenta ? (ordenExistente?.venta_de ?? "") : "");
+  const [ventaDe, setVentaDe] = useState(!esPuntoDeVenta ? (ordenExistente?.venta_de ?? "") : "");
+  const [vendedor, setVendedor] = useState(ordenExistente?.vendedor ?? "");
+  const [medioEnvio, setMedioEnvio] = useState(ordenExistente?.medio_envio ?? "");
+  const [metodoPago, setMetodoPago] = useState(ordenExistente?.metodo_pago ?? "");
+  const [formaPago, setFormaPago] = useState(ordenExistente?.forma_pago ?? "CONTADO");
+  const [comentarios, setComentarios] = useState(ordenExistente?.comentarios ?? "");
+  const [tipoCliente, setTipoCliente] = useState(ordenExistente?.tipo_cliente ?? "EXISTENTE");
 
-  // Items
-  const [items, setItems] = useState<Record<string, number>>({});
+  // Items — precargados si estamos editando
+  const [items, setItems] = useState<Record<string, number>>(() => {
+    if (!ordenExistente?.orden_items) return {};
+    const init: Record<string, number> = {};
+    ordenExistente.orden_items.forEach(item => {
+      if (item.producto_id) init[item.producto_id] = item.cantidad;
+    });
+    return init;
+  });
 
   // Canal activo para precios
   const canalActivo = ventaA === "CLIENTE REDES SOCIALES"
@@ -118,36 +128,57 @@ export function OrdenForm({
       const ventaAFinal = ventaA;
       const ventaDeFinal = ventaA === "PUNTO DE VENTA" ? puntoDe : ventaDe || null;
 
-      const { data: orden, error } = await supabase
-        .from("ordenes")
-        .insert({
-          cliente_id: finalClienteId || null,
-          fecha_entrega_comprometida: fechaEntrega || null,
-          fecha_cobro: fechaCobro || null,
-          venta_a: ventaAFinal || null,
-          venta_de: ventaDeFinal || null,
-          vendedor: vendedor || null,
-          medio_envio: medioEnvio || null,
-          metodo_pago: metodoPago || null,
-          forma_pago: formaPago || null,
-          comentarios: comentarios || null,
-          tipo_cliente: tipoCliente,
-          mes: getMesActual(),
-          total_unidades: totalUnidades,
-          total_q: totalQ,
-          usuario_registro: userEmail,
-        })
-        .select().single();
+      const datosOrden = {
+        cliente_id: finalClienteId || null,
+        fecha_entrega_comprometida: fechaEntrega || null,
+        fecha_cobro: fechaCobro || null,
+        venta_a: ventaAFinal || null,
+        venta_de: ventaDeFinal || null,
+        vendedor: vendedor || null,
+        medio_envio: medioEnvio || null,
+        metodo_pago: metodoPago || null,
+        forma_pago: formaPago || null,
+        comentarios: comentarios || null,
+        tipo_cliente: tipoCliente,
+        total_unidades: totalUnidades,
+        total_q: totalQ,
+      };
 
-      if (error || !orden) throw error;
+      let ordenId: string;
+
+      if (editando && ordenExistente) {
+        // Actualizar orden existente
+        const { error } = await supabase
+          .from("ordenes")
+          .update({ ...datosOrden, updated_at: new Date().toISOString() })
+          .eq("id", ordenExistente.id);
+        if (error) throw error;
+
+        // Reemplazar items
+        await supabase.from("orden_items").delete().eq("orden_id", ordenExistente.id);
+        ordenId = ordenExistente.id;
+      } else {
+        // Crear orden nueva
+        const { data: orden, error } = await supabase
+          .from("ordenes")
+          .insert({
+            ...datosOrden,
+            mes: getMesActual(),
+            usuario_registro: userEmail,
+          })
+          .select().single();
+        if (error || !orden) throw error;
+        ordenId = orden.id;
+      }
 
       if (validItems.length > 0) {
         await supabase.from("orden_items").insert(
-          validItems.map(i => ({ ...i, orden_id: orden.id }))
+          validItems.map(i => ({ ...i, orden_id: ordenId }))
         );
       }
 
-      router.push(`/ordenes/${orden.id}`);
+      router.push(`/ordenes/${ordenId}`);
+      router.refresh();
     } catch (err) {
       console.error(err);
       setLoading(false);
@@ -162,7 +193,9 @@ export function OrdenForm({
         <Link href="/ordenes" className="text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-bold text-foreground">Nueva Orden</h1>
+        <h1 className="text-xl font-bold text-foreground">
+          {editando ? "Editar Orden" : "Nueva Orden"}
+        </h1>
       </div>
 
       {/* Cliente */}
@@ -364,7 +397,7 @@ export function OrdenForm({
         </Link>
         <button type="submit" disabled={loading}
           className="flex items-center gap-2 bg-foreground hover:opacity-80 disabled:opacity-50 text-background font-semibold rounded-lg px-6 py-2.5 text-sm transition-opacity">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando...</> : "Guardar Orden"}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando...</> : (editando ? "Guardar Cambios" : "Guardar Orden")}
         </button>
       </div>
     </form>
