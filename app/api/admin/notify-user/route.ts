@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         from: "Cibum Órdenes <onboarding@resend.dev>",
-        to: "jgiron@unis.edu.gt",
+        to: "sales.cibum@gmail.com",
         subject: "Usuario aprobado — Cibum",
         html: `<p>El usuario ${nombre} (${email}) fue aprobado.</p>`,
       }),
