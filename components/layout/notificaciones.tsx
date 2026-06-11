@@ -85,8 +85,9 @@ export function Notificaciones() {
     fetchEventos();
 
     const supabase = createClient();
+    // Nombre único por montaje — evita reutilizar un canal ya suscrito
     const channel = supabase
-      .channel("notificaciones")
+      .channel(`notificaciones-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ordenes" }, fetchEventos)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orden_historial" }, fetchEventos)
       .subscribe();

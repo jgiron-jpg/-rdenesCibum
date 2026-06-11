@@ -41,7 +41,7 @@ export function OrdenesClient({
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel("ordenes-list")
+      .channel(`ordenes-list-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ordenes" },
