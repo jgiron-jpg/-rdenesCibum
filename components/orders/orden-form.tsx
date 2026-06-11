@@ -13,7 +13,7 @@ import {
   MEDIO_CONTACTO_OPTIONS,
   getMesActual,
 } from "@/lib/utils";
-import { PUNTOS_DE_VENTA, getPrecio } from "@/lib/precios";
+import { PUNTOS_DE_VENTA, NIT_POR_PUNTO, getPrecio } from "@/lib/precios";
 import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
 
 interface ItemRow {
@@ -44,6 +44,7 @@ export function OrdenForm({
   const [nombreClienteRed, setNombreClienteRed] = useState(
     ordenExistente?.venta_a === "CLIENTE REDES SOCIALES" ? (ordenExistente?.cliente?.nombre ?? "") : ""
   );
+  const [nit, setNit] = useState(ordenExistente?.cliente?.nit ?? "");
 
   // Orden fields — precargados si estamos editando
   const esPuntoDeVenta = ordenExistente?.venta_a === "PUNTO DE VENTA";
@@ -125,11 +126,16 @@ export function OrdenForm({
 
         if (existente) {
           finalClienteId = existente.id;
+          // Actualizar NIT si se ingresó uno
+          if (nit.trim()) {
+            await supabase.from("clientes").update({ nit: nit.trim() }).eq("id", existente.id);
+          }
         } else {
           const { data: created } = await supabase
             .from("clientes")
             .insert({
               nombre: nombreCliente,
+              nit: nit.trim() || null,
               telefono: ventaA === "CLIENTE REDES SOCIALES" ? telefonoRed || null : null,
               direccion: ventaA === "CLIENTE REDES SOCIALES" ? direccionRed || null : null,
               medio_contacto: ventaA === "CLIENTE REDES SOCIALES" ? medioContactoRed || null : "PUNTO DE VENTA",
@@ -265,13 +271,32 @@ export function OrdenForm({
 
           {/* Punto de venta específico — solo si eligió PUNTO DE VENTA */}
           {ventaA === "PUNTO DE VENTA" && (
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Punto de venta</label>
-              <select value={puntoDe} onChange={e => setPuntoDe(e.target.value)} className={inputClass}>
-                <option value="">Seleccionar punto...</option>
-                {PUNTOS_DE_VENTA.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Punto de venta</label>
+                <select
+                  value={puntoDe}
+                  onChange={e => {
+                    setPuntoDe(e.target.value);
+                    // Autorellenar NIT si lo conocemos
+                    setNit(NIT_POR_PUNTO[e.target.value] ?? "");
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">Seleccionar punto...</option>
+                  {PUNTOS_DE_VENTA.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">NIT</label>
+                <input
+                  value={nit}
+                  onChange={e => setNit(e.target.value)}
+                  placeholder="NIT del punto de venta"
+                  className={inputClass}
+                />
+              </div>
+            </>
           )}
 
           {/* Venta de — solo si es redes sociales */}
@@ -335,12 +360,21 @@ export function OrdenForm({
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-semibold text-foreground">Datos del cliente (redes sociales)</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+            <div>
               <label className="block text-xs text-muted-foreground mb-1">Nombre del cliente</label>
               <input
                 value={nombreClienteRed}
                 onChange={(e) => setNombreClienteRed(e.target.value)}
                 placeholder="Nombre completo del cliente"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">NIT (CF si no tiene)</label>
+              <input
+                value={nit}
+                onChange={(e) => setNit(e.target.value)}
+                placeholder="Ej: 1234567-8 o CF"
                 className={inputClass}
               />
             </div>

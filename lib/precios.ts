@@ -102,6 +102,16 @@ export const PRECIOS_DEFAULT: Record<string, number> = {
   "Jerky 81gr": 52.50,
 };
 
+// NITs conocidos por punto de venta — agregar los que falten
+export const NIT_POR_PUNTO: Record<string, string> = {
+  "LAS TORRES": "26532476",
+  "TORRES EXPRESS": "26532476",
+  "BICIMANIA": "5199654",
+  "BROT": "94577994",
+  "CAOBA FARMS": "96814357",
+  "DELICA": "1699431",
+};
+
 export function getPrecio(nombreProducto: string, canal: string): number {
   // Para puntos de venta específicos que son "OTROS", usar precios OTROS
   const preciosCanal = PRECIOS_POR_CANAL[canal] ?? PRECIOS_POR_CANAL["OTROS"];
