@@ -8,42 +8,33 @@ import {
   SKUS, getMinimos, getOptimos, stockVacio,
   type Distribuidor, type ConfigInventario, type SkuKey, type StockPorSku,
 } from "@/lib/inventario";
-import { ArrowLeft, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Loader2, Download, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
-interface DistribuidorFila {
-  distribuidor: Distribuidor;
-  fechaCorte: string | null;
-  stockActual: StockPorSku;
-  minimos: StockPorSku;
-  optimos: StockPorSku;
+// Estado por SKU: conteo físico ingresado y cantidad aprobada
+type CamposSku = { fisico: string; aprobado: string };
+type FilasSku = Record<SkuKey, CamposSku>;
+
+function filaVacia(): FilasSku {
+  const obj = {} as FilasSku;
+  for (const sku of SKUS) {
+    obj[sku.key] = { fisico: "", aprobado: "" };
+  }
+  return obj;
 }
 
-// Aprobados: distribuidorId -> skuKey -> cantidad
-type Aprobados = Record<string, Record<string, string>>;
-
-function calcSugerido(stock: number, optimo: number) {
-  return Math.max(0, optimo - stock);
-}
-
-function calcInvFinal(stock: number, aprobado: number) {
-  return stock + aprobado;
-}
-
-function calcMargen(invFinal: number, optimo: number): number | null {
-  if (optimo <= 0) return null;
-  return Math.round((invFinal / optimo) * 100);
+function calcSugerido(fisico: number, optimo: number) {
+  return Math.max(0, optimo - fisico);
 }
 
 function MargenBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-muted-foreground">—</span>;
-  const bajo = pct < 80;
-  const sobre = pct > 120;
-  const cls = bajo
-    ? "bg-red-500/15 text-red-500 border-red-500/30"
-    : sobre
-    ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
-    : "bg-green-500/15 text-green-500 border-green-500/30";
+  if (pct === null) return <span className="text-muted-foreground/50">—</span>;
+  const cls =
+    pct < 80
+      ? "bg-red-500/15 text-red-500 border-red-500/30"
+      : pct > 120
+      ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
+      : "bg-green-500/15 text-green-500 border-green-500/30";
   return (
     <span className={`text-xs px-2 py-1 rounded border font-bold ${cls}`}>
       {pct}%
@@ -52,102 +43,109 @@ function MargenBadge({ pct }: { pct: number | null }) {
 }
 
 function Reposicion() {
-  const [data, setData] = useState<DistribuidorFila[]>([]);
-  const [aprobados, setAprobados] = useState<Aprobados>({});
-  const [loading, setLoading] = useState(true);
+  const [distribuidores, setDistribuidores] = useState<Distribuidor[]>([]);
+  const [distribuidorId, setDistribuidorId] = useState("");
+  const [optimos, setOptimos] = useState<StockPorSku>(stockVacio());
+  const [minimos, setMinimos] = useState<StockPorSku>(stockVacio());
+  const [filas, setFilas] = useState<FilasSku>(filaVacia());
+  const [loadingDists, setLoadingDists] = useState(true);
+  const [loadingConfig, setLoadingConfig] = useState(false);
 
+  // Cargar distribuidores al montar
   useEffect(() => {
-    async function fetchData() {
-      const supabase = createClient();
-      const [{ data: dists }, { data: cortes }, { data: configs }] = await Promise.all([
-        supabase.from("distribuidores").select("*").eq("activo", true).order("nombre"),
-        supabase.from("inventario_cortes").select("*").order("fecha_corte", { ascending: false }),
-        supabase.from("inventario_config").select("*"),
-      ]);
-
-      const result: DistribuidorFila[] = [];
-      const aprobadosInit: Aprobados = {};
-
-      for (const d of (dists ?? []) as Distribuidor[]) {
-        const ultimoCorte = ((cortes ?? []) as Record<string, unknown>[]).find(
-          (c) => c.distribuidor_id === d.id
-        );
-        const config = ((configs ?? []) as ConfigInventario[]).find(
-          (c) => c.distribuidor_id === d.id
-        ) ?? null;
-
-        const stockActual = stockVacio();
-        if (ultimoCorte) {
-          for (const sku of SKUS) {
-            const val = ultimoCorte[`fisico_${sku.key}`];
-            stockActual[sku.key] = typeof val === "number" ? val : 0;
-          }
-        }
-
-        const minimos = getMinimos(config);
-        const optimos = getOptimos(config);
-
-        // Inicializar aprobados con el sugerido
-        aprobadosInit[d.id] = {};
-        for (const sku of SKUS) {
-          const sug = calcSugerido(stockActual[sku.key], optimos[sku.key]);
-          aprobadosInit[d.id][sku.key] = String(sug);
-        }
-
-        result.push({
-          distribuidor: d,
-          fechaCorte: ultimoCorte ? String(ultimoCorte.fecha_corte) : null,
-          stockActual,
-          minimos,
-          optimos,
-        });
-      }
-
-      setData(result);
-      setAprobados(aprobadosInit);
-      setLoading(false);
-    }
-    fetchData();
+    createClient()
+      .from("distribuidores")
+      .select("*")
+      .eq("activo", true)
+      .order("nombre")
+      .then(({ data }) => {
+        setDistribuidores(data ?? []);
+        setLoadingDists(false);
+      });
   }, []);
 
-  function setAprobado(distribuidorId: string, skuKey: string, value: string) {
-    setAprobados((prev) => ({
+  // Cargar config cuando cambia el distribuidor
+  useEffect(() => {
+    if (!distribuidorId) return;
+    setLoadingConfig(true);
+    createClient()
+      .from("inventario_config")
+      .select("*")
+      .eq("distribuidor_id", distribuidorId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const config = (data ?? null) as ConfigInventario | null;
+        const opt = getOptimos(config);
+        const min = getMinimos(config);
+        setOptimos(opt);
+        setMinimos(min);
+        // Inicializar filas vacías y aprobado = sugerido cuando haya fisico
+        setFilas(filaVacia());
+        setLoadingConfig(false);
+      });
+  }, [distribuidorId]);
+
+  function setFisico(skuKey: SkuKey, value: string) {
+    setFilas((prev) => {
+      const fisico = parseInt(value) || 0;
+      const sug = calcSugerido(fisico, optimos[skuKey]);
+      return {
+        ...prev,
+        [skuKey]: {
+          fisico: value,
+          // auto-completar aprobado con el sugerido si el usuario no lo tocó
+          aprobado: prev[skuKey].aprobado === "" || prev[skuKey].aprobado === String(calcSugerido(parseInt(prev[skuKey].fisico) || 0, optimos[skuKey]))
+            ? String(sug)
+            : prev[skuKey].aprobado,
+        },
+      };
+    });
+  }
+
+  function setAprobado(skuKey: SkuKey, value: string) {
+    setFilas((prev) => ({
       ...prev,
-      [distribuidorId]: { ...prev[distribuidorId], [skuKey]: value },
+      [skuKey]: { ...prev[skuKey], aprobado: value },
     }));
   }
 
   async function exportarExcel() {
+    const dist = distribuidores.find((d) => d.id === distribuidorId);
     const { utils, writeFile } = await import("xlsx");
-    const rows: Record<string, unknown>[] = [];
-    for (const { distribuidor: d, stockActual, optimos, fechaCorte } of data) {
-      for (const sku of SKUS) {
-        const stock = stockActual[sku.key];
-        const optimo = optimos[sku.key];
-        const aprobado = parseInt(aprobados[d.id]?.[sku.key] ?? "0") || 0;
-        const sugerido = calcSugerido(stock, optimo);
-        const invFinal = calcInvFinal(stock, aprobado);
-        const margen = calcMargen(invFinal, optimo);
-        rows.push({
-          Distribuidor: d.nombre,
-          "Último corte": fechaCorte ?? "—",
-          SKU: sku.label,
-          "Inv. que queda": stock,
-          Óptimo: optimo,
-          Sugerido: sugerido,
-          Aprobado: aprobado,
-          "Inv. Final": invFinal,
-          "% vs Óptimo": margen !== null ? `${margen}%` : "—",
-        });
-      }
-    }
+    const rows = SKUS.map((sku) => {
+      const fisicoNum = parseInt(filas[sku.key].fisico) || 0;
+      const aprobadoNum = parseInt(filas[sku.key].aprobado) || 0;
+      const sugerido = calcSugerido(fisicoNum, optimos[sku.key]);
+      const invFinal = fisicoNum + aprobadoNum;
+      const margen = optimos[sku.key] > 0 ? Math.round((invFinal / optimos[sku.key]) * 100) : null;
+      return {
+        SKU: sku.label,
+        Marca: sku.marca,
+        "Inv. que queda": fisicoNum,
+        Mínimo: minimos[sku.key],
+        Óptimo: optimos[sku.key],
+        Sugerido: sugerido,
+        Aprobado: aprobadoNum,
+        "Inv. Final": invFinal,
+        "% vs Óptimo": margen !== null ? `${margen}%` : "—",
+      };
+    });
     const ws = utils.json_to_sheet(rows);
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, "Reposición");
-    writeFile(wb, `cibum-reposicion-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    writeFile(
+      wb,
+      `cibum-reposicion-${dist?.nombre ?? "dist"}-${format(new Date(), "yyyy-MM-dd")}.xlsx`
+    );
   }
 
-  if (loading) {
+  const distribuidorNombre = distribuidores.find((d) => d.id === distribuidorId)?.nombre ?? "";
+  const hayFisico = SKUS.some((sku) => filas[sku.key].fisico !== "");
+
+  const inputClass =
+    "w-20 bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30";
+
+  if (loadingDists) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -156,7 +154,8 @@ function Reposicion() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-5xl">
+      {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
           <Link href="/inventario" className="text-muted-foreground hover:text-foreground">
@@ -165,34 +164,53 @@ function Reposicion() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Control de Reposición</h1>
             <p className="text-muted-foreground text-sm">
-              Stock basado en último corte físico · Aprobado editable por supervisor
+              Ingresá el conteo físico · La app calcula qué entregar
             </p>
           </div>
         </div>
-        <button
-          onClick={exportarExcel}
-          className="flex items-center gap-2 border border-border text-foreground rounded-lg px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
-        >
-          <Download className="w-4 h-4" /> Exportar Excel
-        </button>
+        {hayFisico && (
+          <button
+            onClick={exportarExcel}
+            className="flex items-center gap-2 border border-border text-foreground rounded-lg px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
+          >
+            <Download className="w-4 h-4" /> Exportar Excel
+          </button>
+        )}
       </div>
 
-      {data.map(({ distribuidor: d, fechaCorte, stockActual, optimos }) => (
-        <div key={d.id} className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Selector de distribuidor */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <label className="block text-xs text-muted-foreground mb-2 font-medium">
+          Distribuidor
+        </label>
+        <div className="relative max-w-sm">
+          <select
+            value={distribuidorId}
+            onChange={(e) => setDistribuidorId(e.target.value)}
+            className="w-full appearance-none bg-background border border-border rounded-lg px-4 py-2.5 pr-10 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30"
+          >
+            <option value="">Seleccionar distribuidor...</option>
+            {distribuidores.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombre}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Tabla */}
+      {distribuidorId && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex justify-between items-center">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">{d.nombre}</h3>
+              <h3 className="text-sm font-semibold text-foreground">{distribuidorNombre}</h3>
               <p className="text-xs text-muted-foreground">
-                {fechaCorte
-                  ? `Último corte: ${format(new Date(fechaCorte), "dd/MM/yyyy")}`
-                  : "Sin corte registrado"}
+                Ingresá el físico · Sugerido = Óptimo − Físico · Aprobado editable
               </p>
             </div>
-            {!fechaCorte && (
-              <span className="text-xs px-2 py-1 rounded border bg-amber-500/15 text-amber-500 border-amber-500/30 font-medium">
-                Sin datos de corte
-              </span>
-            )}
+            {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
           </div>
 
           <div className="overflow-x-auto">
@@ -200,32 +218,36 @@ function Reposicion() {
               <thead>
                 <tr className="border-b border-border">
                   {[
-                    "SKU",
-                    "Inv. que queda",
-                    "Óptimo",
-                    "Sugerido",
-                    "Aprobado",
-                    "Inv. Final",
-                    "% vs Óptimo",
+                    { label: "SKU", align: "left" },
+                    { label: "Inv. que queda", align: "center" },
+                    { label: "Mínimo", align: "center" },
+                    { label: "Óptimo", align: "center" },
+                    { label: "Sugerido", align: "center" },
+                    { label: "Aprobado", align: "center" },
+                    { label: "Inv. Final", align: "center" },
+                    { label: "% vs Óptimo", align: "center" },
                   ].map((h) => (
                     <th
-                      key={h}
-                      className="text-left text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap"
+                      key={h.label}
+                      className={`text-${h.align} text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap`}
                     >
-                      {h}
+                      {h.label}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {SKUS.map((sku) => {
-                  const stock = stockActual[sku.key];
-                  const optimo = optimos[sku.key];
-                  const sugerido = calcSugerido(stock, optimo);
-                  const aprobadoStr = aprobados[d.id]?.[sku.key] ?? "0";
+                  const fisicoStr = filas[sku.key].fisico;
+                  const aprobadoStr = filas[sku.key].aprobado;
+                  const fisicoNum = parseInt(fisicoStr) || 0;
                   const aprobadoNum = parseInt(aprobadoStr) || 0;
-                  const invFinal = calcInvFinal(stock, aprobadoNum);
-                  const margen = calcMargen(invFinal, optimo);
+                  const sugerido = fisicoStr !== "" ? calcSugerido(fisicoNum, optimos[sku.key]) : null;
+                  const invFinal = fisicoStr !== "" ? fisicoNum + aprobadoNum : null;
+                  const margen =
+                    invFinal !== null && optimos[sku.key] > 0
+                      ? Math.round((invFinal / optimos[sku.key]) * 100)
+                      : null;
 
                   return (
                     <tr key={sku.key} className="border-b border-border/50">
@@ -235,26 +257,56 @@ function Reposicion() {
                           {sku.marca}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-foreground font-bold">{stock}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{optimo}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {sugerido > 0 ? (
-                          <span className="font-medium text-foreground">+{sugerido}</span>
+
+                      {/* Inv. que queda — ingreso manual */}
+                      <td className="px-4 py-3 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          value={fisicoStr}
+                          placeholder="—"
+                          onChange={(e) => setFisico(sku.key, e.target.value)}
+                          className={inputClass}
+                        />
+                      </td>
+
+                      <td className="px-4 py-3 text-center text-muted-foreground">
+                        {minimos[sku.key]}
+                      </td>
+                      <td className="px-4 py-3 text-center text-muted-foreground">
+                        {optimos[sku.key]}
+                      </td>
+
+                      {/* Sugerido — calculado */}
+                      <td className="px-4 py-3 text-center">
+                        {sugerido === null ? (
+                          <span className="text-muted-foreground/40">—</span>
+                        ) : sugerido > 0 ? (
+                          <span className="font-bold text-foreground">+{sugerido}</span>
                         ) : (
-                          <span className="text-muted-foreground/50">—</span>
+                          <span className="text-muted-foreground/50">OK</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+
+                      {/* Aprobado — editable */}
+                      <td className="px-4 py-3 text-center">
                         <input
                           type="number"
                           min={0}
                           value={aprobadoStr}
-                          onChange={(e) => setAprobado(d.id, sku.key as SkuKey, e.target.value)}
-                          className="w-20 bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30"
+                          placeholder="—"
+                          onChange={(e) => setAprobado(sku.key, e.target.value)}
+                          className={inputClass}
                         />
                       </td>
-                      <td className="px-4 py-3 font-bold text-foreground">{invFinal}</td>
-                      <td className="px-4 py-3">
+
+                      {/* Inv. Final — calculado */}
+                      <td className="px-4 py-3 text-center font-bold text-foreground">
+                        {invFinal !== null ? invFinal : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+
+                      {/* % vs Óptimo */}
+                      <td className="px-4 py-3 text-center">
                         <MargenBadge pct={margen} />
                       </td>
                     </tr>
@@ -264,7 +316,13 @@ function Reposicion() {
             </table>
           </div>
         </div>
-      ))}
+      )}
+
+      {!distribuidorId && (
+        <div className="text-center text-muted-foreground text-sm py-12">
+          Seleccioná un distribuidor para comenzar el control de reposición.
+        </div>
+      )}
     </div>
   );
 }
