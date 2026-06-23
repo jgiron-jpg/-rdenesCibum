@@ -14,6 +14,7 @@ import {
   X,
   Users,
   Activity,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -43,7 +44,8 @@ export function Sidebar() {
     });
   }, []);
 
-  const items = navItems;
+  const adminItems = isAdmin ? [{ href: "/inventario", icon: Boxes, label: "Inventario" }] : [];
+  const items = [...navItems, ...adminItems];
 
   async function handleLogout() {
     const supabase = createClient();
