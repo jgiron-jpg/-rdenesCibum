@@ -14,7 +14,6 @@ import {
   X,
   Users,
   Activity,
-  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -31,10 +30,6 @@ const navItems = [
   { href: "/admin/usuarios", icon: Users, label: "Usuarios" },
 ];
 
-const adminItems = [
-  { href: "/inventario", icon: Boxes, label: "Inventario" },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -48,7 +43,7 @@ export function Sidebar() {
     });
   }, []);
 
-  const items = isAdmin ? [...navItems, ...adminItems] : navItems;
+  const items = navItems;
 
   async function handleLogout() {
     const supabase = createClient();
