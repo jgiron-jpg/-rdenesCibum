@@ -9,8 +9,8 @@ import {
 } from "@/lib/inventario";
 import { Loader2, Plus, Download } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
-// Aprobado por producción: editable por SKU
 type Aprobados = Record<string, string>;
 
 function aprobadosVacios(): Aprobados {
@@ -21,9 +21,9 @@ function aprobadosVacios(): Aprobados {
 
 function InventarioEricka() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
-  const [optimos, setOptimos] = useState<StockPorSku | null>(null);
-  const [aprobados, setAprobados] = useState<Aprobados>(aprobadosVacios());
-  const [loading, setLoading] = useState(true);
+  const [optimos, setOptimos]         = useState<StockPorSku | null>(null);
+  const [aprobados, setAprobados]     = useState<Aprobados>(aprobadosVacios());
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -33,7 +33,7 @@ function InventarioEricka() {
         supabase.from("ericka_config").select("*").maybeSingle(),
       ]);
       setMovimientos(movs);
-      setOptimos(getOptimos((cfg as ConfigEricka | null)));
+      setOptimos(getOptimos(cfg as ConfigEricka | null));
       setLoading(false);
     }
     fetchData();
@@ -54,13 +54,13 @@ function InventarioEricka() {
       const final    = actual + aprobado;
       const margen   = optimo > 0 ? Math.round((final / optimo) * 100) : null;
       return {
-        SKU:                  sku.label,
-        Marca:                sku.marca,
-        "Inv. actual":        actual,
-        Óptimo:               optimo,
-        "Prod. aprobado":     aprobado,
-        "Inv. final":         final,
-        "% vs Óptimo":        margen !== null ? `${margen}%` : "—",
+        SKU:              sku.label,
+        Marca:            sku.marca,
+        "Inv. actual":    actual,
+        Óptimo:           optimo,
+        "Prod. aprobado": aprobado,
+        "Inv. final":     final,
+        "% vs Óptimo":    margen !== null ? `${margen}%` : "—",
       };
     });
     const ws = utils.json_to_sheet(rows);
@@ -79,22 +79,19 @@ function InventarioEricka() {
 
   const stock = calcularStock(movimientos);
 
-  // KPIs
-  const totalActual  = SKUS.reduce((s, sku) => s + stock[sku.key], 0);
-  const totalOptimo  = SKUS.reduce((s, sku) => s + optimos[sku.key], 0);
+  const totalActual   = SKUS.reduce((s, sku) => s + stock[sku.key], 0);
+  const totalOptimo   = SKUS.reduce((s, sku) => s + optimos[sku.key], 0);
   const totalAprobado = SKUS.reduce((s, sku) => s + (parseInt(aprobados[sku.key]) || 0), 0);
-  const totalFinal   = totalActual + totalAprobado;
-  const margenGlobal = totalOptimo > 0 ? Math.round((totalFinal / totalOptimo) * 100) : 0;
-
-  // Últimos 10 movimientos
-  const recientes = movimientos.slice(0, 10);
+  const totalFinal    = totalActual + totalAprobado;
+  const margenGlobal  = totalOptimo > 0 ? Math.round((totalFinal / totalOptimo) * 100) : 0;
 
   const inputClass =
     "w-24 bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30";
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-8">
+
+      {/* ── HEADER ── */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Control Ericka</h1>
@@ -116,13 +113,13 @@ function InventarioEricka() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* ── KPIs ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Inv. actual",   value: totalActual,   sub: "unidades" },
-          { label: "Óptimo total",  value: totalOptimo,   sub: "unidades" },
-          { label: "Prod. aprobado", value: totalAprobado, sub: "a entregar" },
-          { label: "Margen global", value: `${margenGlobal}%`, sub: "vs óptimo" },
+          { label: "Inv. actual",    value: totalActual,         sub: "unidades" },
+          { label: "Óptimo total",   value: totalOptimo,         sub: "unidades" },
+          { label: "Prod. aprobado", value: totalAprobado,       sub: "a entregar" },
+          { label: "Margen global",  value: `${margenGlobal}%`,  sub: "vs óptimo" },
         ].map((k) => (
           <div key={k.label} className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
@@ -132,12 +129,14 @@ function InventarioEricka() {
         ))}
       </div>
 
-      {/* Tabla de control — 5 columnas */}
+      {/* ══════════════════════════════════════════
+          SECCIÓN 1 — TABLA DE CONTROL (5 columnas)
+      ══════════════════════════════════════════ */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">Tabla de control de reposición</h3>
+          <h2 className="text-base font-semibold text-foreground">Tabla de control de reposición</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Ingresá el producto aprobado por producción para calcular el inventario final
+            Ingresá el producto aprobado por producción · El resto se calcula automáticamente
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -145,12 +144,12 @@ function InventarioEricka() {
             <thead>
               <tr className="border-b border-border">
                 {[
-                  { label: "SKU",                align: "left"   },
-                  { label: "Inv. actual",        align: "center" },
-                  { label: "Óptimo",             align: "center" },
-                  { label: "Prod. aprobado",     align: "center" },
-                  { label: "Inv. final",         align: "center" },
-                  { label: "% vs Óptimo",        align: "center" },
+                  { label: "SKU",             align: "left"   },
+                  { label: "Inv. actual",     align: "center" },
+                  { label: "Óptimo",          align: "center" },
+                  { label: "Prod. aprobado",  align: "center" },
+                  { label: "Inv. final",      align: "center" },
+                  { label: "% vs Óptimo",     align: "center" },
                 ].map((h) => (
                   <th
                     key={h.label}
@@ -171,24 +170,12 @@ function InventarioEricka() {
 
                 return (
                   <tr key={sku.key} className="border-b border-border/50">
-                    <td className="px-4 py-3 text-foreground font-medium whitespace-nowrap">
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                       {sku.label}
-                      <span className="ml-2 text-xs text-muted-foreground font-normal">
-                        {sku.marca}
-                      </span>
+                      <span className="ml-2 text-xs text-muted-foreground font-normal">{sku.marca}</span>
                     </td>
-
-                    {/* 1. Inv. actual */}
-                    <td className="px-4 py-3 text-center font-bold text-foreground">
-                      {actual}
-                    </td>
-
-                    {/* 2. Óptimo */}
-                    <td className="px-4 py-3 text-center text-muted-foreground">
-                      {optimo}
-                    </td>
-
-                    {/* 3. Prod. aprobado — editable */}
+                    <td className="px-4 py-3 text-center font-bold text-foreground">{actual}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">{optimo}</td>
                     <td className="px-4 py-3 text-center">
                       <input
                         type="number"
@@ -198,13 +185,7 @@ function InventarioEricka() {
                         className={inputClass}
                       />
                     </td>
-
-                    {/* 4. Inv. final */}
-                    <td className="px-4 py-3 text-center font-bold text-foreground">
-                      {final}
-                    </td>
-
-                    {/* 5. Margen % */}
+                    <td className="px-4 py-3 text-center font-bold text-foreground">{final}</td>
                     <td className="px-4 py-3 text-center">
                       {pct !== null ? (
                         <span className={`text-xs px-2 py-1 rounded border font-bold ${margenColor(pct)}`}>
@@ -218,9 +199,9 @@ function InventarioEricka() {
                 );
               })}
 
-              {/* Fila de totales */}
-              <tr className="bg-secondary/30">
-                <td className="px-4 py-3 text-xs font-semibold text-muted-foreground">TOTAL</td>
+              {/* Fila totales */}
+              <tr className="bg-secondary/30 border-t border-border">
+                <td className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total</td>
                 <td className="px-4 py-3 text-center font-bold text-foreground">{totalActual}</td>
                 <td className="px-4 py-3 text-center font-bold text-foreground">{totalOptimo}</td>
                 <td className="px-4 py-3 text-center font-bold text-foreground">{totalAprobado}</td>
@@ -236,61 +217,86 @@ function InventarioEricka() {
         </div>
       </div>
 
-      {/* Últimos movimientos */}
-      {recientes.length > 0 && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border">
-            <h3 className="text-sm font-semibold text-foreground">Últimos movimientos</h3>
+      {/* ══════════════════════════════════════════
+          SECCIÓN 2 — REGISTRO DE MOVIMIENTOS
+          Verde = ENTREGA (recibos), Rojo = todo lo demás
+      ══════════════════════════════════════════ */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex justify-between items-center">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Registro de movimientos</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <span className="text-green-500 font-medium">Verde</span> = recibos de producto ·{" "}
+              <span className="text-red-400 font-medium">Rojo</span> = despachos y ajustes
+            </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Fecha", "Tipo", "Referencia", ...SKUS.map(s => s.label.split(" ")[0]), "Total"].map((h) => (
-                    <th key={h} className="text-left text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recientes.map((m) => (
-                  <tr key={m.id} className="border-b border-border/50">
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
-                      {format(new Date(m.fecha), "dd/MM/yyyy")}
+          <p className="text-xs text-muted-foreground">{movimientos.length} registros</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap">Fecha</th>
+                <th className="text-left text-xs text-muted-foreground font-medium px-4 py-3">Referencia</th>
+                <th className="text-left text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap">Tipo</th>
+                {SKUS.map((sku) => (
+                  <th key={sku.key} className="text-center text-xs text-muted-foreground font-medium px-2 py-3 whitespace-nowrap">
+                    {sku.label.split(" ")[0]}
+                  </th>
+                ))}
+                <th className="text-center text-xs text-muted-foreground font-medium px-3 py-3">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movimientos.map((m) => {
+                const esEntrega = m.tipo === "ENTREGA";
+                const rowColor  = esEntrega
+                  ? "bg-green-500/5 border-green-500/10"
+                  : "border-border/50";
+                const textColor = esEntrega ? "text-green-400" : "text-red-400";
+
+                return (
+                  <tr key={m.id} className={`border-b ${rowColor}`}>
+                    <td className="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(m.fecha), "dd MMM yyyy", { locale: es })}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2 text-xs text-foreground max-w-[220px] truncate">
+                      {m.referencia ?? "—"}
+                    </td>
+                    <td className="px-4 py-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                        m.tipo === "ENTREGA"
+                        esEntrega
                           ? "bg-green-500/10 text-green-500 border-green-500/20"
-                          : m.tipo === "VENTA"
-                          ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                          : "bg-secondary text-muted-foreground border-border"
+                          : m.tipo === "DEVOLUCION"
+                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          : m.tipo === "AJUSTE"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
                       }`}>
                         {m.tipo}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{m.referencia ?? "—"}</td>
                     {SKUS.map((sku) => {
                       const val = (m[sku.key as keyof Movimiento] as number) ?? 0;
                       return (
-                        <td key={sku.key} className={`px-4 py-2.5 text-xs font-medium text-center ${
-                          val > 0 ? "text-green-500" : val < 0 ? "text-red-400" : "text-muted-foreground/30"
+                        <td key={sku.key} className={`px-2 py-2 text-center text-xs font-semibold ${
+                          val === 0 ? "text-muted-foreground/20" : textColor
                         }`}>
-                          {val !== 0 ? (val > 0 ? `+${val}` : val) : "·"}
+                          {val === 0 ? "·" : val > 0 ? `+${val}` : val}
                         </td>
                       );
                     })}
-                    <td className="px-4 py-2.5 text-xs font-bold text-foreground text-center">
-                      {m.total_unidades}
+                    <td className={`px-3 py-2 text-center text-xs font-bold ${textColor}`}>
+                      {m.total_unidades > 0 ? `+${m.total_unidades}` : m.total_unidades}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
     </div>
   );
 }
