@@ -7,7 +7,7 @@ import {
   SKUS, calcularStock, getOptimos, fetchMovimientos, margenColor,
   type Movimiento, type ConfigEricka, type StockPorSku,
 } from "@/lib/inventario";
-import { Loader2, Plus, Download } from "lucide-react";
+import { Loader2, Plus, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -24,6 +24,7 @@ function InventarioEricka() {
   const [optimos, setOptimos]         = useState<StockPorSku | null>(null);
   const [aprobados, setAprobados]     = useState<Aprobados>(aprobadosVacios());
   const [loading, setLoading]         = useState(true);
+  const [registroAbierto, setRegistroAbierto] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -222,17 +223,23 @@ function InventarioEricka() {
           Verde = ENTREGA (recibos), Rojo = todo lo demás
       ══════════════════════════════════════════ */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex justify-between items-center">
-          <div>
+        <button
+          onClick={() => setRegistroAbierto((v) => !v)}
+          className="w-full px-5 py-4 border-b border-border flex justify-between items-center hover:bg-secondary/30 transition-colors"
+        >
+          <div className="text-left">
             <h2 className="text-base font-semibold text-foreground">Registro de movimientos</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="text-green-500 font-medium">Verde</span> = recibos de producto ·{" "}
-              <span className="text-red-400 font-medium">Rojo</span> = despachos y ajustes
+              <span className="text-green-500 font-medium">Verde</span> = recibos ·{" "}
+              <span className="text-red-400 font-medium">Rojo</span> = despachos · {movimientos.length} registros
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">{movimientos.length} registros</p>
-        </div>
-        <div className="overflow-x-auto">
+          {registroAbierto
+            ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          }
+        </button>
+        <div className={`overflow-x-auto ${registroAbierto ? "" : "hidden"}`}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
