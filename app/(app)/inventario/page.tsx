@@ -7,7 +7,7 @@ import {
   SKUS, calcularStock, getOptimos, fetchMovimientos, margenColor,
   type Movimiento, type ConfigEricka, type StockPorSku,
 } from "@/lib/inventario";
-import { Loader2, Plus, Download, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, Download, ChevronDown, ChevronUp, CheckCircle2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -27,6 +27,7 @@ function InventarioEricka() {
   const [registroAbierto, setRegistroAbierto] = useState(false);
   const [guardando, setGuardando]       = useState(false);
   const [exito, setExito]               = useState(false);
+  const [borrando, setBorrando]         = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -76,6 +77,17 @@ function InventarioEricka() {
       setTimeout(() => setExito(false), 3000);
     }
     setGuardando(false);
+  }
+
+  async function borrarMovimiento(id: string) {
+    if (!confirm("¿Seguro que querés borrar este movimiento?")) return;
+    setBorrando(id);
+    const supabase = createClient();
+    const { error } = await supabase.from("ericka_movimientos").delete().eq("id", id);
+    if (!error) {
+      setMovimientos((prev) => prev.filter((m) => m.id !== id));
+    }
+    setBorrando(null);
   }
 
   async function exportarExcel() {
@@ -306,11 +318,12 @@ function InventarioEricka() {
                   </th>
                 ))}
                 <th className="text-center text-xs text-muted-foreground font-medium px-3 py-3">Total</th>
+                <th className="px-3 py-3" />
               </tr>
             </thead>
             <tbody>
               {movimientos.map((m) => {
-                const esEntrega = m.tipo === "ENTREGA";
+                const esEntrega = m.tipo === "RECIBO" || m.tipo === "ENTREGA";
                 const rowColor  = esEntrega
                   ? "bg-green-500/5 border-green-500/10"
                   : "border-border/50";
@@ -349,6 +362,19 @@ function InventarioEricka() {
                     })}
                     <td className={`px-3 py-2 text-center text-xs font-bold ${textColor}`}>
                       {m.total_unidades > 0 ? `+${m.total_unidades}` : m.total_unidades}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => borrarMovimiento(m.id)}
+                        disabled={borrando === m.id}
+                        className="text-muted-foreground/30 hover:text-red-500 transition-colors disabled:opacity-50"
+                        title="Borrar movimiento"
+                      >
+                        {borrando === m.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Trash2 className="w-3.5 h-3.5" />
+                        }
+                      </button>
                     </td>
                   </tr>
                 );
