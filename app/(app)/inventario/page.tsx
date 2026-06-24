@@ -7,7 +7,7 @@ import {
   SKUS, calcularStock, getOptimos, fetchMovimientos, margenColor,
   type Movimiento, type ConfigEricka, type StockPorSku,
 } from "@/lib/inventario";
-import { Loader2, Plus, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, Download, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -22,9 +22,11 @@ function aprobadosVacios(): Aprobados {
 function InventarioEricka() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [optimos, setOptimos]         = useState<StockPorSku | null>(null);
-  const [aprobados, setAprobados]     = useState<Aprobados>(aprobadosVacios());
-  const [loading, setLoading]         = useState(true);
+  const [aprobados, setAprobados]       = useState<Aprobados>(aprobadosVacios());
+  const [loading, setLoading]           = useState(true);
   const [registroAbierto, setRegistroAbierto] = useState(false);
+  const [guardando, setGuardando]       = useState(false);
+  const [exito, setExito]               = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -42,6 +44,38 @@ function InventarioEricka() {
 
   function setAprobado(skuKey: string, val: string) {
     setAprobados((prev) => ({ ...prev, [skuKey]: val }));
+  }
+
+  async function registrarRecibo() {
+    const hayValores = SKUS.some((sku) => (parseInt(aprobados[sku.key]) || 0) > 0);
+    if (!hayValores) return;
+    setGuardando(true);
+
+    const supabase = createClient();
+    const payload: Record<string, unknown> = {
+      fecha: new Date().toISOString().slice(0, 10),
+      tipo: "RECIBO",
+      referencia: `Recibo ${new Date().toLocaleDateString("es-GT")}`,
+      notas: "Registrado desde tabla de control",
+    };
+    let total = 0;
+    for (const sku of SKUS) {
+      const val = parseInt(aprobados[sku.key]) || 0;
+      payload[sku.key] = val;
+      total += val;
+    }
+    payload.total_unidades = total;
+
+    const { error } = await supabase.from("ericka_movimientos").insert(payload);
+    if (!error) {
+      // Recargar movimientos y resetear aprobados
+      const movs = await fetchMovimientos(supabase);
+      setMovimientos(movs);
+      setAprobados(aprobadosVacios());
+      setExito(true);
+      setTimeout(() => setExito(false), 3000);
+    }
+    setGuardando(false);
   }
 
   async function exportarExcel() {
@@ -134,11 +168,31 @@ function InventarioEricka() {
           SECCIÓN 1 — TABLA DE CONTROL (5 columnas)
       ══════════════════════════════════════════ */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-base font-semibold text-foreground">Tabla de control de reposición</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Ingresá el producto aprobado por producción · El resto se calcula automáticamente
-          </p>
+        <div className="px-5 py-4 border-b border-border flex flex-wrap justify-between items-center gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Tabla de control de reposición</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ingresá el producto aprobado · Guardá como recibo cuando esté listo
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {exito && (
+              <span className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                <CheckCircle2 className="w-4 h-4" /> Recibo registrado
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={registrarRecibo}
+              disabled={guardando || !SKUS.some((sku) => (parseInt(aprobados[sku.key]) || 0) > 0)}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg px-4 py-2 transition-colors"
+            >
+              {guardando
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                : <><Plus className="w-4 h-4" /> Registrar recibo</>
+              }
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
