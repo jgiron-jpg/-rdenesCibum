@@ -70,9 +70,48 @@ export async function fetchMovimientos(supabase: any): Promise<Movimiento[]> {
   return all;
 }
 
+export const PUNTOS_VENTA = [
+  "La Torre Americas Z13",
+  "La Torre Miraflores Z11",
+  "La Torre Próceres Z10",
+  "La Torre Cayala",
+  "La Torre Cayala 2",
+  "La Torre Antigua 1",
+  "La Torre Antigua 2",
+  "La Torre Antigua 3",
+  "La Torre Zona 13",
+  "La Torre Zona 15",
+  "La Torre Zona 16",
+  "La Torre Vista Hermosa 1",
+  "La Torre El Naranjo",
+  "La Torre Roosevelt",
+  "La Torre Muxbal",
+  "La Torre Arrazola",
+  "La Torre San Isidro",
+  "La Torre Oakland",
+  "La Torre San Ignacio",
+  "La Torre Sankris",
+  "La Torre 20 Calle",
+  "La Torre Futeca Z14",
+  "LTXG San Lucas",
+  "LTXG San Lucas 2",
+  "Pedidos Ya Zona 7",
+  "Pedidos Ya Zona 13",
+  "Pedidos Ya Vista Hermosa",
+  "Pedidos Ya Reforma",
+  "Pedidos Ya CAES",
+  "SAV Design Center",
+  "SAV Blue Medical",
+  "SAV Centro Empresarial",
+  "Delica",
+  "Puerta del Sol 20 Calle",
+  "Otro",
+] as const;
+
 export function calcularStock(movimientos: Movimiento[]): StockPorSku {
   const stock = stockVacio();
   for (const m of movimientos) {
+    if (m.tipo === "CAMBIO") continue; // cambio no afecta stock neto
     for (const sku of SKUS) {
       stock[sku.key] += (m[sku.key] as number) ?? 0;
     }
