@@ -151,10 +151,12 @@ export function OrdenForm({
         .filter(([, qty]) => qty > 0)
         .map(([productoId, qty]) => {
           const prod = productos.find(p => p.id === productoId);
+          const precio_unitario = prod ? getPrecio(prod.nombre, canalActivo) : 0;
           return {
             producto_id: productoId,
             cantidad: qty,
-            precio_unitario: prod ? getPrecio(prod.nombre, canalActivo) : 0,
+            precio_unitario,
+            subtotal: qty * precio_unitario,
           };
         });
 

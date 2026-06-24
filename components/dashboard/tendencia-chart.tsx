@@ -28,7 +28,7 @@ export function TendenciaChart({ ordenes }: { ordenes: Orden[] }) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-white mb-4">
+      <h3 className="text-sm font-semibold text-foreground mb-4">
         Pedidos recibidos (últimas 2 semanas)
       </h3>
       <ResponsiveContainer width="100%" height={200}>

@@ -106,12 +106,12 @@ export function OrdenDetalle({
         <div className="flex items-center gap-3">
           <Link
             href="/ordenes"
-            className="text-muted-foreground hover:text-white transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-xl font-bold text-foreground">
               {orden.cliente?.nombre ?? "Orden"}
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -121,7 +121,7 @@ export function OrdenDetalle({
         </div>
         <Link
           href={`/ordenes/${orden.id}/editar`}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white border border-border rounded-lg px-3 py-2 transition-colors"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors"
         >
           <Edit className="w-4 h-4" />
           Editar
@@ -133,7 +133,7 @@ export function OrdenDetalle({
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Package className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white">Producción</h3>
+            <h3 className="text-sm font-semibold text-foreground">Producción</h3>
           </div>
 
           {/* Progress */}
@@ -157,7 +157,7 @@ export function OrdenDetalle({
                 className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                   orden.estado_produccion === e
                     ? colorEstadoProduccion(e) + " ring-1 ring-amber-500/50"
-                    : "border-border text-muted-foreground hover:border-amber-500/50 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    : "border-border text-muted-foreground hover:border-amber-500/50 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
                 }`}
               >
                 {labelEstado(e)}
@@ -174,22 +174,24 @@ export function OrdenDetalle({
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Truck className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white">Comercial</h3>
+            <h3 className="text-sm font-semibold text-foreground">Comercial</h3>
           </div>
 
           <div className="flex gap-1 mb-4">
-            {ESTADOS_COMERCIAL.slice(0, 4).map((e, i) => (
-              <div
-                key={e}
-                className={`flex-1 h-1.5 rounded-full transition-colors ${
-                  i <= comIdx && !["CANCELADO", "COBRADO"].includes(orden.estado_comercial)
-                    ? "bg-indigo-500"
-                    : orden.estado_comercial === "ENTREGADO" || orden.estado_comercial === "COBRADO"
-                    ? "bg-green-500"
-                    : "bg-secondary"
-                }`}
-              />
-            ))}
+            {orden.estado_comercial === "CANCELADO" ? (
+              <div className="flex-1 h-1.5 rounded-full bg-red-500/50" />
+            ) : (
+              ESTADOS_COMERCIAL.filter(e => e !== "CANCELADO").map((e, i) => (
+                <div
+                  key={e}
+                  className={`flex-1 h-1.5 rounded-full transition-colors ${
+                    i <= ESTADOS_COMERCIAL.filter(e2 => e2 !== "CANCELADO").indexOf(orden.estado_comercial as typeof e)
+                      ? orden.estado_comercial === "COBRADO" ? "bg-green-500" : "bg-indigo-500"
+                      : "bg-secondary"
+                  }`}
+                />
+              ))
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 mb-4">
@@ -201,7 +203,7 @@ export function OrdenDetalle({
                 className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                   orden.estado_comercial === e
                     ? colorEstadoComercial(e) + " ring-1 ring-indigo-500/50"
-                    : "border-border text-muted-foreground hover:border-indigo-500/50 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    : "border-border text-muted-foreground hover:border-indigo-500/50 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
                 }`}
               >
                 {labelEstado(e)}
@@ -226,7 +228,7 @@ export function OrdenDetalle({
             onChange={(e) => setNotas(e.target.value)}
             rows={2}
             placeholder="Agregar nota..."
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
           />
         </div>
       )}
@@ -234,7 +236,7 @@ export function OrdenDetalle({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Información de la orden */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-white">Información del Pedido</h3>
+          <h3 className="text-sm font-semibold text-foreground">Información del Pedido</h3>
           <dl className="space-y-2.5">
             {[
               ["Cliente", orden.cliente?.nombre],
@@ -255,7 +257,7 @@ export function OrdenDetalle({
               value ? (
                 <div key={label} className="flex justify-between text-sm">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="text-white font-medium">{value}</dd>
+                  <dd className="text-foreground font-medium">{value}</dd>
                 </div>
               ) : null
             ))}
@@ -263,14 +265,14 @@ export function OrdenDetalle({
           {orden.comentarios && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Comentarios</p>
-              <p className="text-sm text-white">{orden.comentarios}</p>
+              <p className="text-sm text-foreground">{orden.comentarios}</p>
             </div>
           )}
         </div>
 
         {/* Productos */}
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Productos</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Productos</h3>
           {orden.orden_items && orden.orden_items.length > 0 ? (
             <div className="space-y-2">
               {orden.orden_items.map((item) => (
@@ -279,12 +281,12 @@ export function OrdenDetalle({
                   className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0"
                 >
                   <div>
-                    <p className="text-white">{item.producto?.nombre}</p>
+                    <p className="text-foreground">{item.producto?.nombre}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.producto?.marca} · {item.cantidad} × {formatQ(item.precio_unitario)}
                     </p>
                   </div>
-                  <p className="text-white font-medium">{formatQ(item.subtotal)}</p>
+                  <p className="text-foreground font-medium">{formatQ(item.subtotal)}</p>
                 </div>
               ))}
               <div className="flex justify-between items-center text-sm font-semibold pt-1">
@@ -302,7 +304,7 @@ export function OrdenDetalle({
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4 text-amber-400" />
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-foreground">
             Historial de cambios
           </h3>
         </div>
@@ -314,7 +316,7 @@ export function OrdenDetalle({
               <div key={h.id} className="flex gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
                 <div>
-                  <p className="text-white">
+                  <p className="text-foreground">
                     <span className="text-muted-foreground">{h.campo_cambiado === "estado_produccion" ? "Producción" : "Comercial"}:</span>{" "}
                     {labelEstado(h.estado_anterior)}
                     <ChevronRight className="w-3 h-3 inline text-muted-foreground mx-1" />

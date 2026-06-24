@@ -58,7 +58,7 @@ export function DashboardClient({ ordenes: initial }: { ordenes: Orden[] }) {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Resumen operativo en tiempo real
         </p>
@@ -74,7 +74,7 @@ export function DashboardClient({ ordenes: initial }: { ordenes: Orden[] }) {
         </div>
         <div>
           <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-white mb-3">
+            <h3 className="text-sm font-semibold text-foreground mb-3">
               Por Estado Comercial
             </h3>
             <div className="space-y-2">
@@ -96,7 +96,7 @@ export function DashboardClient({ ordenes: initial }: { ordenes: Orden[] }) {
                     <span className="text-muted-foreground">
                       {estado.replace("_", " ")}
                     </span>
-                    <span className="text-white font-medium">{count}</span>
+                    <span className="text-foreground font-medium">{count}</span>
                   </div>
                 );
               })}

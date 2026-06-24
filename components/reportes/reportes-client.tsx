@@ -139,12 +139,12 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Reportes</h1>
+          <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
           <p className="text-muted-foreground text-sm">Indicadores operativos</p>
         </div>
         <button
           onClick={exportarExcel}
-          className="flex items-center gap-2 bg-card border border-border hover:border-amber-500/50 text-white rounded-lg px-4 py-2.5 text-sm transition-colors"
+          className="flex items-center gap-2 bg-card border border-border hover:border-amber-500/50 text-foreground rounded-lg px-4 py-2.5 text-sm transition-colors"
         >
           <Download className="w-4 h-4 text-amber-400" />
           Exportar Excel
@@ -184,7 +184,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tendencia semanal */}
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
             Recibidos vs Entregados por semana
           </h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -203,7 +203,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
 
         {/* Estado comercial pie */}
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
             Distribución por estado comercial
           </h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -224,7 +224,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
 
       {/* Por vendedor */}
       <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">Por vendedor</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-4">Por vendedor</h3>
         <div className="space-y-2">
           {porVendedor.map(({ vendedor, total }) => (
             <div key={vendedor} className="flex items-center gap-3">
@@ -235,7 +235,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
                   style={{ width: `${(total / ordenes.length) * 100}%` }}
                 />
               </div>
-              <span className="text-sm text-white font-medium w-8 text-right">{total}</span>
+              <span className="text-sm text-foreground font-medium w-8 text-right">{total}</span>
             </div>
           ))}
         </div>
@@ -244,7 +244,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
       {/* Alertas */}
       {alertas.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
             Alertas operativas activas ({alertas.length})
           </h3>
           <div className="overflow-x-auto">
@@ -261,7 +261,7 @@ export function ReportesClient({ ordenes }: { ordenes: Orden[] }) {
               <tbody>
                 {alertas.map(({ orden, tipo }) => (
                   <tr key={`${orden.id}-${tipo}`} className="border-b border-border/50">
-                    <td className="px-3 py-2 text-white">{orden.cliente?.nombre ?? "—"}</td>
+                    <td className="px-3 py-2 text-foreground">{orden.cliente?.nombre ?? "—"}</td>
                     <td className="px-3 py-2">
                       <span className={`text-xs px-2 py-1 rounded-full border ${
                         tipo === "ATRASADO" ? "bg-red-500/10 text-red-300 border-red-500/20" : "bg-amber-500/10 text-amber-300 border-amber-500/20"

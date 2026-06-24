@@ -91,7 +91,7 @@ export function UsuariosClient() {
     <div className="p-6 space-y-6 max-w-3xl">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Usuarios</h1>
+          <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
           <p className="text-muted-foreground text-sm">Gestión de acceso al sistema</p>
         </div>
         <button
@@ -106,7 +106,7 @@ export function UsuariosClient() {
       {/* Form */}
       {showForm && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Crear nuevo usuario</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Crear nuevo usuario</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -115,7 +115,7 @@ export function UsuariosClient() {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej: María García"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -126,7 +126,7 @@ export function UsuariosClient() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="usuario@cibum.com"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -138,7 +138,7 @@ export function UsuariosClient() {
                   required
                   minLength={6}
                   placeholder="Mínimo 6 caracteres"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -146,7 +146,7 @@ export function UsuariosClient() {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 >
                   <option value="comercial">Comercial — ve y edita estados comerciales</option>
                   <option value="produccion">Producción — ve y edita estados de producción</option>
@@ -165,7 +165,7 @@ export function UsuariosClient() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-white transition-colors"
+                className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancelar
               </button>
@@ -191,7 +191,7 @@ export function UsuariosClient() {
       {/* Users list */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-foreground">
             Usuarios registrados ({users.length})
           </h3>
         </div>
@@ -209,11 +209,11 @@ export function UsuariosClient() {
               return (
                 <div key={u.id} className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-white">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-foreground">
                       {(u.user_metadata?.nombre || u.email || "?")[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm text-white font-medium">
+                      <p className="text-sm text-foreground font-medium">
                         {u.user_metadata?.nombre || u.email}
                       </p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>

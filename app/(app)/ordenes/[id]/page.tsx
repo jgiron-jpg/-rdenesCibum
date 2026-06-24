@@ -50,7 +50,7 @@ export default function OrdenPage() {
     );
   }
 
-  if (!orden) return null;
+  if (!orden) { notFound(); return null; }
 
   return (
     <OrdenDetalle

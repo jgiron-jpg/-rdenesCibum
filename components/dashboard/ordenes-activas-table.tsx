@@ -13,7 +13,7 @@ export function OrdenesActivasTable({ ordenes }: { ordenes: Orden[] }) {
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex justify-between items-center">
-        <h3 className="text-sm font-semibold text-white">
+        <h3 className="text-sm font-semibold text-foreground">
           Pedidos Activos ({ordenes.length})
         </h3>
         <Link
@@ -55,7 +55,7 @@ export function OrdenesActivasTable({ ordenes }: { ordenes: Orden[] }) {
                   key={orden.id}
                   className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                 >
-                  <td className="px-4 py-3 text-white font-medium">
+                  <td className="px-4 py-3 text-foreground font-medium">
                     {orden.cliente?.nombre ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
@@ -79,7 +79,7 @@ export function OrdenesActivasTable({ ordenes }: { ordenes: Orden[] }) {
                       {labelEstado(orden.estado_comercial)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-white font-medium">
+                  <td className="px-4 py-3 text-foreground font-medium">
                     {formatQ(orden.total_q)}
                   </td>
                   <td className="px-4 py-3">

@@ -37,7 +37,7 @@ const alertConfig = {
 export function AlertasPanel({ alertas }: { alertas: AlertaOrden[] }) {
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-white mb-3">
+      <h3 className="text-sm font-semibold text-foreground mb-3">
         Alertas Operativas ({alertas.length})
       </h3>
       <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -52,7 +52,7 @@ export function AlertasPanel({ alertas }: { alertas: AlertaOrden[] }) {
             >
               <Icon className={`w-4 h-4 ${cfg.color} flex-shrink-0`} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white truncate">
+                <p className="text-sm text-foreground truncate">
                   {orden.cliente?.nombre ?? "Cliente sin nombre"}
                 </p>
                 <p className="text-xs text-muted-foreground">

@@ -92,7 +92,7 @@ export function OrdenesClient({
     <div className="p-6 space-y-5">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Órdenes</h1>
+          <h1 className="text-2xl font-bold text-foreground">Órdenes</h1>
           <p className="text-muted-foreground text-sm">
             {filtered.length} resultados
           </p>
@@ -119,14 +119,14 @@ export function OrdenesClient({
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               placeholder="Buscar cliente..."
-              className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             />
           </div>
 
           <select
             value={filtroEstadoProd}
             onChange={(e) => { setFiltroEstadoProd(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           >
             <option value="">Estado Producción</option>
             {ESTADOS_PRODUCCION.map((e) => (
@@ -137,7 +137,7 @@ export function OrdenesClient({
           <select
             value={filtroEstadoCom}
             onChange={(e) => { setFiltroEstadoCom(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           >
             <option value="">Estado Comercial</option>
             {ESTADOS_COMERCIAL.map((e) => (
@@ -148,7 +148,7 @@ export function OrdenesClient({
           <select
             value={filtroVendedor}
             onChange={(e) => { setFiltroVendedor(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           >
             <option value="">Vendedor</option>
             {VENDEDORES.map((v) => (
@@ -159,7 +159,7 @@ export function OrdenesClient({
           <select
             value={filtroMes}
             onChange={(e) => { setFiltroMes(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           >
             <option value="">Mes</option>
             {meses.map((m) => (
@@ -171,16 +171,16 @@ export function OrdenesClient({
             type="date"
             value={filtroFechaDesde}
             onChange={(e) => { setFiltroFechaDesde(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           />
           <input
             type="date"
             value={filtroFechaHasta}
             onChange={(e) => { setFiltroFechaHasta(e.target.value); setPage(0); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           />
         </div>
-        {(search || filtroEstadoProd || filtroEstadoCom || filtroVendedor || filtroMes || filtroFechaDesde) && (
+        {(search || filtroEstadoProd || filtroEstadoCom || filtroVendedor || filtroMes || filtroFechaDesde || filtroFechaHasta) && (
           <button
             onClick={() => { setSearch(""); setFiltroEstadoProd(""); setFiltroEstadoCom(""); setFiltroVendedor(""); setFiltroMes(""); setFiltroFechaDesde(""); setFiltroFechaHasta(""); setPage(0); }}
             className="text-xs text-amber-400 hover:text-amber-300"
@@ -228,7 +228,7 @@ export function OrdenesClient({
                             />
                           )}
                           <div>
-                            <p className="text-white font-medium">
+                            <p className="text-foreground font-medium">
                               {orden.cliente?.nombre ?? "—"}
                             </p>
                             {orden.venta_de && (
@@ -253,7 +253,7 @@ export function OrdenesClient({
                           {labelEstado(orden.estado_comercial)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-white font-medium">
+                      <td className="px-4 py-3 text-foreground font-medium">
                         {formatQ(orden.total_q)}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
@@ -278,7 +278,7 @@ export function OrdenesClient({
             <button
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-white hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               ← Anterior
             </button>
@@ -288,7 +288,7 @@ export function OrdenesClient({
             <button
               disabled={page >= totalPages - 1}
               onClick={() => setPage(page + 1)}
-              className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-white hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Siguiente →
             </button>
