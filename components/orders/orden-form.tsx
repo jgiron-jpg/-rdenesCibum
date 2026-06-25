@@ -53,7 +53,8 @@ export function OrdenForm({
   const [fechaEntrega, setFechaEntrega] = useState(ordenExistente?.fecha_entrega_comprometida ?? "");
   const [fechaCobro, setFechaCobro] = useState(ordenExistente?.fecha_cobro ?? "");
   const [ventaA, setVentaA] = useState(ordenExistente?.venta_a ?? "");
-  const [puntoDe, setPuntoDe] = useState(esPuntoDeVenta ? (ordenExistente?.venta_de ?? "") : "");
+  const [puntoDe, setPuntoDe] = useState(""); // solo para precio, no se guarda en DB
+  const [nombreExactoPV, setNombreExactoPV] = useState(esPuntoDeVenta ? (ordenExistente?.venta_de ?? "") : "");
   const [ventaDe, setVentaDe] = useState(!esPuntoDeVenta ? (ordenExistente?.venta_de ?? "") : "");
   const [vendedor, setVendedor] = useState(ordenExistente?.vendedor ?? "");
   const [medioEnvio, setMedioEnvio] = useState(ordenExistente?.medio_envio ?? "");
@@ -163,7 +164,7 @@ export function OrdenForm({
         });
 
       const ventaAFinal = ventaA;
-      const ventaDeFinal = ventaA === "PUNTO DE VENTA" ? puntoDe : ventaDe || null;
+      const ventaDeFinal = ventaA === "PUNTO DE VENTA" ? nombreExactoPV || null : ventaDe || null;
 
       const datosOrden = {
         cliente_id: finalClienteId || null,
@@ -290,19 +291,27 @@ export function OrdenForm({
           {ventaA === "PUNTO DE VENTA" && (
             <>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Punto de venta</label>
+                <label className="block text-xs text-muted-foreground mb-1">Canal de precios</label>
                 <select
                   value={puntoDe}
                   onChange={e => {
                     setPuntoDe(e.target.value);
-                    // Autorellenar NIT si lo conocemos
                     setNit(NIT_POR_PUNTO[e.target.value] ?? "");
                   }}
                   className={inputClass}
                 >
-                  <option value="">Seleccionar punto...</option>
+                  <option value="">Seleccionar para ajustar precios...</option>
                   {PUNTOS_DE_VENTA.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Nombre del cliente *</label>
+                <input
+                  value={nombreExactoPV}
+                  onChange={e => setNombreExactoPV(e.target.value)}
+                  placeholder="Ej: La Torre Miraflores Z11 — Don Carlos"
+                  className={inputClass}
+                />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">NIT</label>

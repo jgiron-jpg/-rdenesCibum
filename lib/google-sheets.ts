@@ -62,7 +62,7 @@ function ordenToRow(orden: any): (string | number)[] {
   row[15] = qtys[7]; // Jerky 81gr
   row[16] = typeof orden.total_q === "number" ? Math.round(orden.total_q * 100) / 100 : Number(orden.total_q) || 0;
   row[17] = cliente.nit ?? "";
-  row[18] = cliente.nombre ?? "";
+  row[18] = (orden.venta_a === "PUNTO DE VENTA" ? orden.venta_de : cliente.nombre) ?? "";
   row[19] = cliente.telefono ?? "";
   row[20] = cliente.direccion ?? "";
   row[21] = cliente.medio_contacto ?? "";
@@ -126,7 +126,7 @@ export async function borrarOrdenSheet(ordenId: string) {
 
 // ─── Control Ericka ──────────────────────────────────────────────────────────
 
-const ERICKA_SHEET = "Control Ericka";
+const ERICKA_SHEET = "CONTROL ERICKA";
 const SKU_COLS = [
   "especial_daniel", "honey_chipotle", "lemon_pepper", "teriyaki",
   "palitos_26g", "jerky_35g", "jerky_81g",
