@@ -113,9 +113,18 @@ export function OrdenDetalle({
       }
     }
 
+    const ordenActualizada = { ...orden, estado_comercial: nuevoEstado };
     setOrden((prev) => ({ ...prev, estado_comercial: nuevoEstado as Orden["estado_comercial"] }));
     setNotas("");
     setSavingCom(false);
+
+    // Sync a Google Sheets (fire and forget)
+    fetch("/api/sheets/sync-orden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orden: ordenActualizada, accion: "actualizar" }),
+    }).catch(() => {});
+
     router.refresh();
   }
 
