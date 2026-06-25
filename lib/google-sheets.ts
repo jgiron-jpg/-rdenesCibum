@@ -44,7 +44,7 @@ function ordenToRow(orden: any): (string | number)[] {
     if (colOffset !== undefined) qtys[colOffset - 8] = item.cantidad;
   }
 
-  row[0]  = orden.fecha_ingreso ? new Date(orden.fecha_ingreso).toLocaleString("es-GT") : "";
+  row[0]  = orden.fecha_ingreso ? new Date(orden.fecha_ingreso).toLocaleString("es-GT", { timeZone: "America/Guatemala" }) : "";
   row[1]  = orden.fecha_entrega_comprometida ?? "";
   row[2]  = orden.fecha_cobro ?? "";
   row[3]  = orden.estado_produccion ?? "";
