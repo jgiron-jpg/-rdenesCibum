@@ -69,7 +69,7 @@ export default function NuevoMovimiento() {
         </Link>
         <div>
           <h1 className="text-xl font-bold text-foreground">Registrar Cambio</h1>
-          <p className="text-muted-foreground text-sm">Reemplazo de producto vencido en tienda</p>
+          <p className="text-muted-foreground text-sm">Cambios de producto vencido en tienda</p>
         </div>
       </div>
 

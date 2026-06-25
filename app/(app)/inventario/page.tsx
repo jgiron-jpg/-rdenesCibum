@@ -151,7 +151,7 @@ function InventarioEricka() {
           href="/inventario/movimiento"
           className="flex items-center gap-2 bg-foreground text-background text-sm font-semibold rounded-lg px-4 py-2.5 hover:opacity-80 transition-opacity"
         >
-          <Plus className="w-4 h-4" /> Movimiento
+          <Plus className="w-4 h-4" /> Cambio
         </Link>
       </div>
 
