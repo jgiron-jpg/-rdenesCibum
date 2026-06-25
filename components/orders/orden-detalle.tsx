@@ -104,12 +104,16 @@ export function OrdenDetalle({
         "de80e846-0605-4024-83c5-2703dfdb3977": "jerky_81g",
       };
 
+      const items = orden.orden_items ?? [];
+      console.log("[DESPACHO] orden_items:", items);
       const skuCounts = stockVacio();
-      for (const item of orden.orden_items ?? []) {
+      for (const item of items) {
         const key = PRODUCTO_SKU[item.producto_id];
+        console.log("[DESPACHO] item:", item.producto_id, "→ key:", key, "cantidad:", item.cantidad);
         if (key) skuCounts[key as keyof typeof skuCounts] += item.cantidad;
       }
       const totalUnidades = SKUS.reduce((s, sku) => s + skuCounts[sku.key], 0);
+      console.log("[DESPACHO] skuCounts:", skuCounts, "total:", totalUnidades);
       if (totalUnidades > 0) {
         const payload: Record<string, unknown> = {
           fecha: new Date().toISOString().slice(0, 10),
@@ -119,7 +123,11 @@ export function OrdenDetalle({
           total_unidades: -totalUnidades,
         };
         for (const sku of SKUS) payload[sku.key] = -skuCounts[sku.key];
-        await supabase.from("ericka_movimientos").insert(payload);
+        console.log("[DESPACHO] payload:", payload);
+        const { error: despachoError } = await supabase.from("ericka_movimientos").insert(payload);
+        console.log("[DESPACHO] resultado insert:", despachoError ?? "OK");
+      } else {
+        console.log("[DESPACHO] totalUnidades=0, no se crea movimiento");
       }
     }
 
