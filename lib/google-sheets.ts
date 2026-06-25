@@ -124,6 +124,39 @@ export async function borrarOrdenSheet(ordenId: string) {
   });
 }
 
+// ─── Control Ericka ──────────────────────────────────────────────────────────
+
+const ERICKA_SHEET = "Control Ericka";
+const SKU_COLS = [
+  "especial_daniel", "honey_chipotle", "lemon_pepper", "teriyaki",
+  "palitos_26g", "jerky_35g", "jerky_81g",
+] as const;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function movimientoToRow(mov: any): (string | number)[] {
+  return [
+    mov.fecha ?? "",
+    mov.tipo ?? "",
+    mov.referencia ?? "",
+    ...SKU_COLS.map((k) => (typeof mov[k] === "number" ? mov[k] : Number(mov[k]) || 0)),
+    typeof mov.total_unidades === "number" ? mov.total_unidades : Number(mov.total_unidades) || 0,
+    mov.notas ?? "",
+  ];
+}
+
+export async function agregarMovimientoErickaSheet(mov: Record<string, unknown>) {
+  const sheets = getSheets();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${ERICKA_SHEET}!A:K`,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values: [movimientoToRow(mov)] },
+  });
+}
+
+// ─── Órdenes ─────────────────────────────────────────────────────────────────
+
 export async function actualizarOrdenSheet(orden: Record<string, unknown>) {
   const sheets = getSheets();
   const ordenId = String(orden.id ?? "").slice(0, 8).toUpperCase();

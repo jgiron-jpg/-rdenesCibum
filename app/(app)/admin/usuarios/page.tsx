@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, XCircle, Shield, Package, Truck } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 interface Usuario {
@@ -22,6 +22,20 @@ export default function AdminUsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState("");
+  const [resyncing, setResyncing] = useState(false);
+
+  async function resyncSheets() {
+    setResyncing(true);
+    setMensaje("");
+    const res = await fetch("/api/sheets/resync-recientes", { method: "POST" });
+    const data = await res.json();
+    if (data.ok !== undefined) {
+      setMensaje(`✅ Re-sync completo: ${data.ok} órdenes actualizadas${data.fail > 0 ? `, ${data.fail} fallaron` : ""}`);
+    } else {
+      setMensaje("❌ Error en re-sync: " + (data.error ?? "desconocido"));
+    }
+    setResyncing(false);
+  }
 
   useEffect(() => { fetchUsuarios(); }, []);
 
@@ -71,9 +85,19 @@ export default function AdminUsuariosPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Panel de Usuarios</h1>
-        <p className="text-muted-foreground text-sm">Aprobá o rechazá solicitudes de acceso</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Panel de Usuarios</h1>
+          <p className="text-muted-foreground text-sm">Aprobá o rechazá solicitudes de acceso</p>
+        </div>
+        <button
+          onClick={resyncSheets}
+          disabled={resyncing}
+          className="flex items-center gap-2 text-sm border border-border rounded-lg px-4 py-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${resyncing ? "animate-spin" : ""}`} />
+          {resyncing ? "Sincronizando..." : "Re-sync Sheets (últimas 100)"}
+        </button>
       </div>
 
       {mensaje && (

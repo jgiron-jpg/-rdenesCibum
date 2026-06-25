@@ -65,9 +65,17 @@ export function OrdenDetalle({
       notas: notas || null,
     });
 
+    const ordenActualizada = { ...orden, estado_produccion: nuevoEstado };
     setOrden((prev) => ({ ...prev, estado_produccion: nuevoEstado as Orden["estado_produccion"] }));
     setNotas("");
     setSavingProd(false);
+
+    fetch("/api/sheets/sync-orden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orden: ordenActualizada, accion: "actualizar" }),
+    }).catch(() => {});
+
     router.refresh();
   }
 

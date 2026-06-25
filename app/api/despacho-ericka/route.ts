@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SKUS, stockVacio } from "@/lib/inventario";
+import { agregarMovimientoErickaSheet } from "@/lib/google-sheets";
 
 const PRODUCTO_SKU: Record<string, string> = {
   "cbaa1e02-aafa-489d-b369-4f8cf636c38e": "especial_daniel",
@@ -54,6 +55,11 @@ export async function POST(req: NextRequest) {
       console.error("[DESPACHO API] Error inserting despacho:", insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
+
+    // Sync a Control Ericka sheet (fire and forget)
+    agregarMovimientoErickaSheet(payload).catch((e) =>
+      console.error("[DESPACHO API] Sheets sync error:", e)
+    );
 
     return NextResponse.json({ ok: true, totalUnidades });
   } catch (e) {

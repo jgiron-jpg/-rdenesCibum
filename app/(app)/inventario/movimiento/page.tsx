@@ -48,6 +48,12 @@ export default function NuevoMovimiento() {
 
     const { error: err } = await createClient().from("ericka_movimientos").insert(payload);
     if (!err) {
+      // Sync a Control Ericka sheet (fire and forget)
+      fetch("/api/sheets/sync-movimiento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ movimiento: payload }),
+      }).catch(() => {});
       router.push("/inventario");
     } else {
       console.error(err);
