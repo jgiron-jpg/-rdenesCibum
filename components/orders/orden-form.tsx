@@ -13,7 +13,7 @@ import {
   MEDIO_CONTACTO_OPTIONS,
   getMesActual,
 } from "@/lib/utils";
-import { PUNTOS_DE_VENTA, NIT_POR_PUNTO, getPrecio } from "@/lib/precios";
+import { PUNTOS_DE_VENTA, getPrecio } from "@/lib/precios";
 import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
 
 interface ItemRow {
@@ -46,7 +46,12 @@ export function OrdenForm({
   const [nombreClienteRed, setNombreClienteRed] = useState(
     ordenExistente?.venta_a === "CLIENTE REDES SOCIALES" ? (ordenExistente?.cliente?.nombre ?? "") : ""
   );
-  const [nit, setNit] = useState(ordenExistente?.cliente?.nit ?? "");
+  const NIT_OPTIONS = ["CF", "26532476", "110411668"];
+  const nitInicial = ordenExistente?.cliente?.nit ?? "";
+  const nitOpcionInicial = NIT_OPTIONS.includes(nitInicial) ? nitInicial : (nitInicial ? "otro" : "CF");
+  const [nitOpcion, setNitOpcion] = useState(nitOpcionInicial);
+  const [nitCustom, setNitCustom] = useState(NIT_OPTIONS.includes(nitInicial) ? "" : nitInicial);
+  const nit = nitOpcion === "otro" ? nitCustom : nitOpcion;
 
   // Orden fields — precargados si estamos editando
   const esPuntoDeVenta = ordenExistente?.venta_a === "PUNTO DE VENTA";
@@ -294,10 +299,7 @@ export function OrdenForm({
                 <label className="block text-xs text-muted-foreground mb-1">Canal de precios</label>
                 <select
                   value={puntoDe}
-                  onChange={e => {
-                    setPuntoDe(e.target.value);
-                    setNit(NIT_POR_PUNTO[e.target.value] ?? "");
-                  }}
+                  onChange={e => setPuntoDe(e.target.value)}
                   className={inputClass}
                 >
                   <option value="">Seleccionar para ajustar precios...</option>
@@ -313,14 +315,28 @@ export function OrdenForm({
                   className={inputClass}
                 />
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">NIT</label>
-                <input
-                  value={nit}
-                  onChange={e => setNit(e.target.value)}
-                  placeholder="NIT del punto de venta"
-                  className={inputClass}
-                />
+              <div className="col-span-2 md:col-span-3">
+                <label className="block text-xs text-muted-foreground mb-2">NIT *</label>
+                <div className="flex flex-wrap gap-4">
+                  {NIT_OPTIONS.map(op => (
+                    <label key={op} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                      <input type="radio" name="nit" value={op} checked={nitOpcion === op} onChange={() => setNitOpcion(op)} className="accent-foreground" />
+                      {op}
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <input type="radio" name="nit" value="otro" checked={nitOpcion === "otro"} onChange={() => setNitOpcion("otro")} className="accent-foreground" />
+                    Otro:
+                    {nitOpcion === "otro" && (
+                      <input
+                        value={nitCustom}
+                        onChange={e => setNitCustom(e.target.value)}
+                        placeholder="Escribí el NIT"
+                        className="bg-background border border-border rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30 w-36"
+                      />
+                    )}
+                  </label>
+                </div>
               </div>
             </>
           )}
