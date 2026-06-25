@@ -10,10 +10,8 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 export default function NuevoMovimiento() {
   const router = useRouter();
   const [fecha, setFecha]        = useState(new Date().toISOString().slice(0, 10));
-  const [referencia, setRef]     = useState("");
   const [puntoVenta, setPunto]   = useState("");
   const [puntoCustom, setCustom] = useState("");
-  const [notas, setNotas]        = useState("");
   const [cantidades, setCant]    = useState<Record<string, string>>(
     Object.fromEntries(SKUS.map((s) => [s.key, ""]))
   );
@@ -36,13 +34,11 @@ export default function NuevoMovimiento() {
     setLoading(true);
 
     const puntoFinal = puntoVenta === "Otro" ? puntoCustom : puntoVenta;
-    const refFinal   = referencia || puntoFinal || null;
 
     const payload: Record<string, unknown> = {
       fecha,
       tipo: "CAMBIO",
-      referencia: refFinal,
-      notas: notas || null,
+      referencia: puntoFinal || null,
       total_unidades: totalUnidades,
     };
 
@@ -88,21 +84,9 @@ export default function NuevoMovimiento() {
 
       {/* Datos generales */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Fecha *</label>
-            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required className={inputClass} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Referencia</label>
-            <input
-              type="text"
-              value={referencia}
-              onChange={(e) => setRef(e.target.value)}
-              placeholder="Opcional"
-              className={inputClass}
-            />
-          </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">Fecha *</label>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required className={inputClass} />
         </div>
 
         <div className="space-y-2">
@@ -162,18 +146,6 @@ export default function NuevoMovimiento() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Notas */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <label className="block text-xs text-muted-foreground mb-1">Notas</label>
-        <textarea
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-          rows={2}
-          placeholder="Observaciones opcionales..."
-          className={`${inputClass} resize-none`}
-        />
       </div>
 
       {error && (
