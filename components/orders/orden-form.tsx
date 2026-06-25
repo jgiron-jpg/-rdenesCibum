@@ -230,7 +230,7 @@ export function OrdenForm({
       // Sync a Google Sheets (fire and forget)
       const { data: ordenCompleta } = await supabase
         .from("ordenes")
-        .select("*, cliente:clientes(*)")
+        .select("*, cliente:clientes(*), orden_items(*, producto:productos(*))")
         .eq("id", ordenId)
         .single();
       if (ordenCompleta) {
