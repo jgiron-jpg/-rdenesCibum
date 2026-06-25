@@ -31,6 +31,10 @@ function InventarioEricka() {
   const [editandoOptimos, setEditandoOptimos] = useState(false);
   const [optimosEdit, setOptimosEdit]   = useState<Record<string, string>>({});
   const [guardandoOptimos, setGuardandoOptimos] = useState(false);
+  const [auditoriaAbierta, setAuditoriaAbierta] = useState(false);
+  const [tienenEdit, setTienenEdit] = useState<Record<string, string>>(
+    Object.fromEntries(SKUS.map((s) => [s.key, ""]))
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -415,6 +419,92 @@ function InventarioEricka() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          SECCIÓN 3 — AUDITORÍA SEMANAL
+      ══════════════════════════════════════════ */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <button
+          onClick={() => setAuditoriaAbierta((v) => !v)}
+          className="w-full px-5 py-4 border-b border-border flex justify-between items-center hover:bg-secondary/30 transition-colors"
+        >
+          <div className="text-left">
+            <h2 className="text-base font-semibold text-foreground">Auditoría semanal</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Comprobación de inventario · Ingresá el conteo de Ericka para detectar faltantes
+            </p>
+          </div>
+          {auditoriaAbierta
+            ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          }
+        </button>
+
+        {auditoriaAbierta && (() => {
+          let totalFaltanteQ = 0;
+          const filas = SKUS.map((sku) => {
+            const deberian = stock[sku.key];
+            const tienen   = parseInt(tienenEdit[sku.key]) || 0;
+            const faltante = Math.max(0, deberian - tienen);
+            const faltanteQ = faltante * sku.costo;
+            totalFaltanteQ += faltanteQ;
+            return { sku, deberian, tienen, faltante, faltanteQ };
+          });
+
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Producto", "Deberían tener", "Lo que tienen", "Faltante", "Costo", "Faltante en Q"].map((h) => (
+                      <th key={h} className="text-left text-xs text-muted-foreground font-medium px-4 py-3 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.map(({ sku, deberian, tienen, faltante, faltanteQ }) => (
+                    <tr key={sku.key} className="border-b border-border/50">
+                      <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
+                        {sku.label}
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">{sku.marca}</span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-foreground">{deberian}</td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min={0}
+                          value={tienenEdit[sku.key]}
+                          onChange={(e) => setTienenEdit((p) => ({ ...p, [sku.key]: e.target.value }))}
+                          placeholder="0"
+                          className="w-24 bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/30"
+                        />
+                      </td>
+                      <td className={`px-4 py-3 font-bold ${faltante > 0 ? "text-red-400" : "text-green-500"}`}>
+                        {faltante > 0 ? `-${faltante}` : "0"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        Q{sku.costo.toFixed(2)}
+                      </td>
+                      <td className={`px-4 py-3 font-bold ${faltanteQ > 0 ? "text-red-400" : "text-green-500"}`}>
+                        {faltanteQ > 0 ? `Q${faltanteQ.toFixed(2)}` : "Q0.00"}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-secondary/30 border-t border-border">
+                    <td className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total</td>
+                    <td colSpan={4} />
+                    <td className={`px-4 py-3 font-bold text-base ${totalFaltanteQ > 0 ? "text-red-400" : "text-green-500"}`}>
+                      {totalFaltanteQ > 0 ? `Q${totalFaltanteQ.toFixed(2)}` : "Q0.00"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
     </div>

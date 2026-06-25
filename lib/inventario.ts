@@ -1,11 +1,11 @@
 export const SKUS = [
-  { key: "especial_daniel", label: "Especial de Daniel", marca: "MR.BEEF" },
-  { key: "honey_chipotle",  label: "Honey Chipotle",     marca: "MR.BEEF" },
-  { key: "lemon_pepper",    label: "Lemon Pepper",        marca: "MR.BEEF" },
-  { key: "teriyaki",        label: "Teriyaki",            marca: "MR.BEEF" },
-  { key: "palitos_26g",     label: "Palitos 26g",         marca: "JACK LINKS" },
-  { key: "jerky_35g",       label: "Jerky 35g",           marca: "JACK LINKS" },
-  { key: "jerky_81g",       label: "Jerky 81g",           marca: "JACK LINKS" },
+  { key: "especial_daniel", label: "Especial de Daniel", marca: "MR.BEEF",     costo: 16.05 },
+  { key: "honey_chipotle",  label: "Honey Chipotle",     marca: "MR.BEEF",     costo: 16.05 },
+  { key: "lemon_pepper",    label: "Lemon Pepper",        marca: "MR.BEEF",     costo: 16.05 },
+  { key: "teriyaki",        label: "Teriyaki",            marca: "MR.BEEF",     costo: 16.05 },
+  { key: "palitos_26g",     label: "Palitos 26g",         marca: "JACK LINKS",  costo: 10.51 },
+  { key: "jerky_35g",       label: "Jerky 35g",           marca: "JACK LINKS",  costo: 24.00 },
+  { key: "jerky_81g",       label: "Jerky 81g",           marca: "JACK LINKS",  costo: 51.76 },
 ] as const;
 
 export type SkuKey = (typeof SKUS)[number]["key"];
