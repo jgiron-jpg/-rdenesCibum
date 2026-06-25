@@ -31,7 +31,7 @@ export default function EditarOrdenPage() {
       setOrden(o);
       setClientes(c ?? []);
       setProductos(p ?? []);
-      setUserEmail(user?.email ?? "");
+      setUserEmail(user?.user_metadata?.nombre ?? user?.email ?? "");
       setLoading(false);
     }
     fetchData();

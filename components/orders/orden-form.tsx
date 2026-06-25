@@ -28,11 +28,13 @@ export function OrdenForm({
   clientes: initialClientes,
   productos,
   userEmail,
+  userNombre,
   ordenExistente,
 }: {
   clientes: Cliente[];
   productos: Producto[];
   userEmail: string;
+  userNombre?: string;
   ordenExistente?: Orden;
 }) {
   const router = useRouter();
@@ -214,7 +216,7 @@ export function OrdenForm({
           .insert({
             ...datosOrden,
             mes: getMesActual(),
-            usuario_registro: userEmail,
+            usuario_registro: userNombre ?? userEmail,
           })
           .select().single();
         if (error || !orden) throw error;
@@ -363,11 +365,6 @@ export function OrdenForm({
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">Comentarios</label>
-          <textarea value={comentarios} onChange={e => setComentarios(e.target.value)}
-            rows={2} className={`${inputClass} resize-none`} />
-        </div>
       </div>
 
       {/* Datos de contacto — solo para cliente de redes sociales */}

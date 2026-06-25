@@ -14,12 +14,14 @@ export default async function NuevaOrdenPage() {
     ]);
 
   const userEmail = userRes?.user?.email ?? "";
+  const userNombre = userRes?.user?.user_metadata?.nombre ?? userEmail;
 
   return (
     <OrdenForm
       clientes={clientes ?? []}
       productos={productos ?? []}
       userEmail={userEmail}
+      userNombre={userNombre}
     />
   );
 }
