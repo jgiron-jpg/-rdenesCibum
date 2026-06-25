@@ -93,11 +93,17 @@ export function OrdenDetalle({
     });
 
     // Auto-DESPACHO en inventario Ericka cuando se entrega una orden de Ericka
-    if (nuevoEstado === "ENTREGADO" && orden.medio_envio === "ERICKA" && orden.orden_items?.length) {
+    if (nuevoEstado === "ENTREGADO" && orden.medio_envio === "ERICKA") {
+      const { data: itemsData } = await supabase
+        .from("orden_items")
+        .select("cantidad, producto:productos(nombre)")
+        .eq("orden_id", orden.id);
+
       const skuCounts = stockVacio();
-      for (const item of orden.orden_items) {
-        if (!item.producto) continue;
-        const key = productoToSkuKey(item.producto.nombre);
+      for (const item of itemsData ?? []) {
+        const prod = item.producto as { nombre: string } | null;
+        if (!prod) continue;
+        const key = productoToSkuKey(prod.nombre);
         if (key) skuCounts[key] += item.cantidad;
       }
       const totalUnidades = SKUS.reduce((s, sku) => s + skuCounts[sku.key], 0);
