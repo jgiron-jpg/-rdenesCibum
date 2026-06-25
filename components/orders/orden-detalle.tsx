@@ -135,6 +135,11 @@ export function OrdenDetalle({
     await supabase.from("orden_items").delete().eq("orden_id", orden.id);
     await supabase.from("orden_historial").delete().eq("orden_id", orden.id);
     await supabase.from("ordenes").delete().eq("id", orden.id);
+    fetch("/api/sheets/sync-orden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orden: { id: orden.id }, accion: "borrar" }),
+    }).catch(() => {});
     router.push("/ordenes");
     router.refresh();
   }

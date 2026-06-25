@@ -89,6 +89,41 @@ export async function agregarOrdenSheet(orden: Record<string, unknown>) {
   });
 }
 
+export async function borrarOrdenSheet(ordenId: string) {
+  const sheets = getSheets();
+  const id = ordenId.slice(0, 8).toUpperCase();
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!AD:AD`,
+  });
+
+  const filas = res.data.values ?? [];
+  const rowIndex = filas.findIndex((r) => r[0] === id);
+  if (rowIndex < 1) return;
+
+  // Obtener spreadsheet ID de la hoja para batchUpdate
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+  const sheet = meta.data.sheets?.find((s) => s.properties?.title === SHEET_NAME);
+  const sheetId = sheet?.properties?.sheetId ?? 0;
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID,
+    requestBody: {
+      requests: [{
+        deleteDimension: {
+          range: {
+            sheetId,
+            dimension: "ROWS",
+            startIndex: rowIndex,
+            endIndex: rowIndex + 1,
+          },
+        },
+      }],
+    },
+  });
+}
+
 export async function actualizarOrdenSheet(orden: Record<string, unknown>) {
   const sheets = getSheets();
   const ordenId = String(orden.id ?? "").slice(0, 8).toUpperCase();
