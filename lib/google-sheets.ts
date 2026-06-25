@@ -2,11 +2,20 @@ import { google } from "googleapis";
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
 const SHEET_NAME = "PEDIDOS";
-const HEADERS = [
-  "ID", "Fecha Ingreso", "Fecha Entrega", "Cliente", "Venta A", "Venta De",
-  "Estado Producción", "Estado Comercial", "Total Unidades", "Total Q",
-  "Medio Envío", "Método Pago", "Forma Pago", "Mes", "Tipo Cliente", "Comentarios",
-];
+
+// Columna 30 (índice 29) = ID interno para poder actualizar filas
+// Coincide con la estructura del ERP original
+
+const PRODUCTO_COL: Record<string, number> = {
+  "cbaa1e02-aafa-489d-b369-4f8cf636c38e": 8,  // Especial de Daniel
+  "db599147-9b28-41cf-b965-d370eb087da0": 9,  // Honey Chipotle
+  "3b83cdc0-5564-4695-ba5e-3cc78974b468": 10, // Lemon Pepper
+  "2f0dadec-ffc6-42d1-8d50-2281eb81ab4d": 11, // Teriyaki
+  "e1d01857-7c27-4030-bec3-559b55d0662e": 12, // Sabor de Temporada
+  "f84e2d8a-67a2-4cce-b18f-80a9cf588408": 13, // Sticks 26gr
+  "e8389401-cd45-48e1-a0d3-94685f93865d": 14, // Jerky 35gr
+  "de80e846-0605-4024-83c5-2703dfdb3977": 15, // Jerky 81gr
+};
 
 function getAuth() {
   return new google.auth.JWT({
@@ -20,51 +29,61 @@ function getSheets() {
   return google.sheets({ version: "v4", auth: getAuth() });
 }
 
-export async function inicializarSheet() {
-  const sheets = getSheets();
-  // Verificar si ya tiene encabezados
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A1:P1`,
-  });
-  if (!res.data.values?.length) {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A1`,
-      valueInputOption: "RAW",
-      requestBody: { values: [HEADERS] },
-    });
-  }
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ordenToRow(orden: any): string[] {
+  // Fila de 30 columnas — misma estructura que el ERP original
+  const row = new Array(30).fill("");
 
-function ordenToRow(orden: Record<string, unknown>): string[] {
-  return [
-    String(orden.id ?? "").slice(0, 8).toUpperCase(),
-    String(orden.fecha_ingreso ?? "").slice(0, 10),
-    String(orden.fecha_entrega_comprometida ?? ""),
-    String((orden.cliente as Record<string, unknown>)?.nombre ?? orden.cliente_id ?? ""),
-    String(orden.venta_a ?? ""),
-    String(orden.venta_de ?? ""),
-    String(orden.estado_produccion ?? ""),
-    String(orden.estado_comercial ?? ""),
-    String(orden.total_unidades ?? ""),
-    String(orden.total_q ?? ""),
-    String(orden.medio_envio ?? ""),
-    String(orden.metodo_pago ?? ""),
-    String(orden.forma_pago ?? ""),
-    String(orden.mes ?? ""),
-    String(orden.tipo_cliente ?? ""),
-    String(orden.comentarios ?? ""),
-  ];
+  const cliente = orden.cliente ?? {};
+  const items: { producto_id: string; cantidad: number }[] = orden.orden_items ?? [];
+
+  // Cantidades por producto (cols 8-15)
+  const qtys = new Array(8).fill(0);
+  for (const item of items) {
+    const colOffset = PRODUCTO_COL[item.producto_id];
+    if (colOffset !== undefined) qtys[colOffset - 8] = item.cantidad;
+  }
+
+  row[0]  = orden.fecha_ingreso ? new Date(orden.fecha_ingreso).toLocaleString("es-GT") : "";
+  row[1]  = orden.fecha_entrega_comprometida ?? "";
+  row[2]  = orden.fecha_cobro ?? "";
+  row[3]  = orden.estado_produccion ?? "";
+  row[4]  = orden.estado_comercial ?? "";
+  row[5]  = orden.venta_a ?? "";
+  row[6]  = orden.venta_de ?? "";
+  row[7]  = orden.tipo_cliente ?? "";
+  row[8]  = qtys[0]; // Especial de Daniel
+  row[9]  = qtys[1]; // Honey Chipotle
+  row[10] = qtys[2]; // Lemon Pepper
+  row[11] = qtys[3]; // Teriyaki
+  row[12] = qtys[4]; // Sabor de Temporada
+  row[13] = qtys[5]; // Sticks 26gr
+  row[14] = qtys[6]; // Jerky 35gr
+  row[15] = qtys[7]; // Jerky 81gr
+  row[16] = orden.total_q ?? "";
+  row[17] = cliente.nit ?? "";
+  row[18] = cliente.nombre ?? "";
+  row[19] = cliente.telefono ?? "";
+  row[20] = cliente.direccion ?? "";
+  row[21] = cliente.medio_contacto ?? "";
+  row[22] = orden.usuario_red ?? "";
+  row[23] = orden.comentarios ?? "";
+  row[24] = orden.medio_envio ?? "";
+  row[25] = orden.metodo_pago ?? "";
+  row[26] = orden.forma_pago ?? "";
+  row[27] = orden.usuario_registro ?? "";
+  row[28] = "";
+  row[29] = String(orden.id ?? "").slice(0, 8).toUpperCase(); // ID para tracking
+
+  return row.map(String);
 }
 
 export async function agregarOrdenSheet(orden: Record<string, unknown>) {
-  await inicializarSheet();
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A:P`,
-    valueInputOption: "RAW",
+    range: `${SHEET_NAME}!A:AD`,
+    valueInputOption: "USER_ENTERED",
     insertDataOption: "INSERT_ROWS",
     requestBody: { values: [ordenToRow(orden)] },
   });
@@ -74,16 +93,16 @@ export async function actualizarOrdenSheet(orden: Record<string, unknown>) {
   const sheets = getSheets();
   const ordenId = String(orden.id ?? "").slice(0, 8).toUpperCase();
 
-  // Buscar la fila por ID
+  // Buscar en col 30 (AD) por el ID
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A:A`,
+    range: `${SHEET_NAME}!AD:AD`,
   });
 
   const filas = res.data.values ?? [];
   const rowIndex = filas.findIndex((r) => r[0] === ordenId);
+
   if (rowIndex < 1) {
-    // No existe, la agrega
     await agregarOrdenSheet(orden);
     return;
   }
@@ -91,8 +110,8 @@ export async function actualizarOrdenSheet(orden: Record<string, unknown>) {
   const sheetRow = rowIndex + 1;
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A${sheetRow}:P${sheetRow}`,
-    valueInputOption: "RAW",
+    range: `${SHEET_NAME}!A${sheetRow}:AD${sheetRow}`,
+    valueInputOption: "USER_ENTERED",
     requestBody: { values: [ordenToRow(orden)] },
   });
 }
