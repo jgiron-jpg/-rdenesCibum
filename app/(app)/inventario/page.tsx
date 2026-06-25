@@ -7,7 +7,7 @@ import {
   SKUS, calcularStock, getOptimos, fetchMovimientos, margenColor,
   type Movimiento, type ConfigEricka, type StockPorSku,
 } from "@/lib/inventario";
-import { Loader2, Plus, ChevronDown, ChevronUp, CheckCircle2, Trash2, Pencil, Check, X } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, CheckCircle2, Trash2, Pencil, Check, X, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -35,6 +35,95 @@ function InventarioEricka() {
   const [tienenEdit, setTienenEdit] = useState<Record<string, string>>(
     Object.fromEntries(SKUS.map((s) => [s.key, ""]))
   );
+
+  async function generarPDFAuditoria() {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF();
+    const fecha = format(new Date(), "dd 'de' MMMM yyyy", { locale: es });
+    const semana = format(new Date(), "'Semana' w, yyyy", { locale: es });
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Reporte de Auditoría Semanal", 14, 20);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Control de Inventario — Ericka", 14, 28);
+    doc.text(`Fecha: ${fecha}`, 14, 35);
+    doc.text(semana, 14, 41);
+
+    const stockActual = calcularStock(movimientos);
+    let totalDeberian = 0, totalTienen = 0, totalFaltante = 0, totalFaltanteQ = 0;
+
+    const rows = SKUS.map((sku) => {
+      const deberian  = stockActual[sku.key];
+      const tienen    = parseInt(tienenEdit[sku.key]) || 0;
+      const faltante  = Math.max(0, deberian - tienen);
+      const faltanteQ = faltante * sku.costo;
+      totalDeberian  += deberian;
+      totalTienen    += tienen;
+      totalFaltante  += faltante;
+      totalFaltanteQ += faltanteQ;
+      return [
+        `${sku.label} (${sku.marca})`,
+        deberian.toString(),
+        tienen.toString(),
+        faltante > 0 ? `-${faltante}` : "0",
+        `Q${sku.costo.toFixed(2)}`,
+        faltanteQ > 0 ? `Q${faltanteQ.toFixed(2)}` : "Q0.00",
+      ];
+    });
+
+    rows.push([
+      "TOTAL",
+      totalDeberian.toString(),
+      totalTienen.toString(),
+      totalFaltante > 0 ? `-${totalFaltante}` : "0",
+      "",
+      totalFaltanteQ > 0 ? `Q${totalFaltanteQ.toFixed(2)}` : "Q0.00",
+    ]);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["Producto", "Deberían tener", "Lo que tienen", "Faltante", "Costo", "Faltante en Q"]],
+      body: rows,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: "bold" },
+      footStyles: { fillColor: [240, 240, 240], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      didParseCell: (data) => {
+        if (data.row.index === rows.length - 1) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [230, 230, 230];
+        }
+        const val = data.cell.raw as string;
+        if (typeof val === "string" && val.startsWith("-")) {
+          data.cell.styles.textColor = [220, 38, 38];
+        }
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    if (totalFaltanteQ > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(220, 38, 38);
+      doc.text(`Total a cobrar a Ericka: Q${totalFaltanteQ.toFixed(2)}`, 14, finalY);
+    } else {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(22, 163, 74);
+      doc.text("Sin faltantes — inventario completo.", 14, finalY);
+    }
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Cibum — Reporte generado automáticamente", 14, 290);
+
+    doc.save(`auditoria-ericka-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -425,21 +514,31 @@ function InventarioEricka() {
           SECCIÓN 3 — AUDITORÍA SEMANAL
       ══════════════════════════════════════════ */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <button
-          onClick={() => setAuditoriaAbierta((v) => !v)}
-          className="w-full px-5 py-4 border-b border-border flex justify-between items-center hover:bg-secondary/30 transition-colors"
-        >
-          <div className="text-left">
-            <h2 className="text-base font-semibold text-foreground">Auditoría semanal</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Comprobación de inventario · Ingresá el conteo de Ericka para detectar faltantes
-            </p>
-          </div>
-          {auditoriaAbierta
-            ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          }
-        </button>
+        <div className="px-5 py-4 border-b border-border flex justify-between items-center">
+          <button
+            onClick={() => setAuditoriaAbierta((v) => !v)}
+            className="flex-1 text-left flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Auditoría semanal</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Comprobación de inventario · Ingresá el conteo de Ericka para detectar faltantes
+              </p>
+            </div>
+            {auditoriaAbierta
+              ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            }
+          </button>
+          {auditoriaAbierta && (
+            <button
+              onClick={generarPDFAuditoria}
+              className="ml-4 flex items-center gap-2 bg-card border border-border hover:border-foreground/30 text-foreground text-sm font-medium rounded-lg px-4 py-2 transition-colors flex-shrink-0"
+            >
+              <FileText className="w-4 h-4" /> Generar PDF
+            </button>
+          )}
+        </div>
 
         {auditoriaAbierta && (() => {
           let totalFaltanteQ = 0;
