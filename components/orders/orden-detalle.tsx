@@ -104,13 +104,8 @@ export function OrdenDetalle({
         "de80e846-0605-4024-83c5-2703dfdb3977": "jerky_81g",
       };
 
-      const { data: itemsData } = await supabase
-        .from("orden_items")
-        .select("cantidad, producto_id")
-        .eq("orden_id", orden.id);
-
       const skuCounts = stockVacio();
-      for (const item of itemsData ?? []) {
+      for (const item of orden.orden_items ?? []) {
         const key = PRODUCTO_SKU[item.producto_id];
         if (key) skuCounts[key as keyof typeof skuCounts] += item.cantidad;
       }
