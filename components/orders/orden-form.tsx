@@ -222,14 +222,9 @@ export function OrdenForm({
       }
 
       if (validItems.length > 0) {
-        const { error: itemsError } = await supabase.from("orden_items").insert(
+        await supabase.from("orden_items").insert(
           validItems.map(({ subtotal: _s, ...i }) => ({ ...i, orden_id: ordenId }))
         );
-        if (itemsError) {
-          alert("Error guardando productos: " + itemsError.message + "\n\nCódigo: " + itemsError.code);
-          setLoading(false);
-          return;
-        }
       }
 
       // Sync a Google Sheets — usar datos ya disponibles en memoria
