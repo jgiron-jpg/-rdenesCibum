@@ -94,17 +94,25 @@ export function OrdenDetalle({
 
     // Auto-DESPACHO en inventario Ericka cuando se entrega una orden de Ericka
     if (nuevoEstado === "ENTREGADO" && orden.medio_envio === "ERICKA") {
+      const PRODUCTO_SKU: Record<string, string> = {
+        "cbaa1e02-aafa-489d-b369-4f8cf636c38e": "especial_daniel",
+        "db599147-9b28-41cf-b965-d370eb087da0": "honey_chipotle",
+        "3b83cdc0-5564-4695-ba5e-3cc78974b468": "lemon_pepper",
+        "2f0dadec-ffc6-42d1-8d50-2281eb81ab4d": "teriyaki",
+        "f84e2d8a-67a2-4cce-b18f-80a9cf588408": "palitos_26g",
+        "e8389401-cd45-48e1-a0d3-94685f93865d": "jerky_35g",
+        "de80e846-0605-4024-83c5-2703dfdb3977": "jerky_81g",
+      };
+
       const { data: itemsData } = await supabase
         .from("orden_items")
-        .select("cantidad, producto:productos(nombre)")
+        .select("cantidad, producto_id")
         .eq("orden_id", orden.id);
 
       const skuCounts = stockVacio();
       for (const item of itemsData ?? []) {
-        const prod = item.producto as { nombre: string } | null;
-        if (!prod) continue;
-        const key = productoToSkuKey(prod.nombre);
-        if (key) skuCounts[key] += item.cantidad;
+        const key = PRODUCTO_SKU[item.producto_id];
+        if (key) skuCounts[key as keyof typeof skuCounts] += item.cantidad;
       }
       const totalUnidades = SKUS.reduce((s, sku) => s + skuCounts[sku.key], 0);
       if (totalUnidades > 0) {
