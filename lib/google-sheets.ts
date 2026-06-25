@@ -30,9 +30,9 @@ function getSheets() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ordenToRow(orden: any): string[] {
+function ordenToRow(orden: any): (string | number)[] {
   // Fila de 30 columnas — misma estructura que el ERP original
-  const row = new Array(30).fill("");
+  const row: (string | number)[] = new Array(30).fill("");
 
   const cliente = orden.cliente ?? {};
   const items: { producto_id: string; cantidad: number }[] = orden.orden_items ?? [];
@@ -60,7 +60,7 @@ function ordenToRow(orden: any): string[] {
   row[13] = qtys[5]; // Sticks 26gr
   row[14] = qtys[6]; // Jerky 35gr
   row[15] = qtys[7]; // Jerky 81gr
-  row[16] = orden.total_q ?? "";
+  row[16] = typeof orden.total_q === "number" ? Math.round(orden.total_q * 100) / 100 : Number(orden.total_q) || 0;
   row[17] = cliente.nit ?? "";
   row[18] = cliente.nombre ?? "";
   row[19] = cliente.telefono ?? "";
@@ -75,7 +75,7 @@ function ordenToRow(orden: any): string[] {
   row[28] = "";
   row[29] = String(orden.id ?? "").slice(0, 8).toUpperCase(); // ID para tracking
 
-  return row.map(String);
+  return row;
 }
 
 export async function agregarOrdenSheet(orden: Record<string, unknown>) {
@@ -83,7 +83,7 @@ export async function agregarOrdenSheet(orden: Record<string, unknown>) {
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${SHEET_NAME}!A:AD`,
-    valueInputOption: "USER_ENTERED",
+    valueInputOption: "RAW",
     insertDataOption: "INSERT_ROWS",
     requestBody: { values: [ordenToRow(orden)] },
   });
@@ -146,7 +146,7 @@ export async function actualizarOrdenSheet(orden: Record<string, unknown>) {
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
     range: `${SHEET_NAME}!A${sheetRow}:AD${sheetRow}`,
-    valueInputOption: "USER_ENTERED",
+    valueInputOption: "RAW",
     requestBody: { values: [ordenToRow(orden)] },
   });
 }
