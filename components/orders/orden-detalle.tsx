@@ -23,6 +23,7 @@ import {
   Truck,
   Edit,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 export function OrdenDetalle({
@@ -128,6 +129,16 @@ export function OrdenDetalle({
     router.refresh();
   }
 
+  async function borrarOrden() {
+    if (!confirm("¿Seguro que querés borrar esta orden? Esta acción no se puede deshacer.")) return;
+    const supabase = createClient();
+    await supabase.from("orden_items").delete().eq("orden_id", orden.id);
+    await supabase.from("orden_historial").delete().eq("orden_id", orden.id);
+    await supabase.from("ordenes").delete().eq("id", orden.id);
+    router.push("/ordenes");
+    router.refresh();
+  }
+
   const prodIdx = ESTADOS_PRODUCCION.indexOf(orden.estado_produccion as (typeof ESTADOS_PRODUCCION)[number]);
   const comIdx = ESTADOS_COMERCIAL.indexOf(orden.estado_comercial as (typeof ESTADOS_COMERCIAL)[number]);
 
@@ -151,13 +162,24 @@ export function OrdenDetalle({
             </p>
           </div>
         </div>
-        <Link
-          href={`/ordenes/${orden.id}/editar`}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors"
-        >
-          <Edit className="w-4 h-4" />
-          Editar
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/ordenes/${orden.id}/editar`}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+            Editar
+          </Link>
+          {userRole === "admin" && (
+            <button
+              onClick={borrarOrden}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-red-400 border border-border hover:border-red-500/30 rounded-lg px-3 py-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Borrar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
