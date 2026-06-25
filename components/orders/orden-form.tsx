@@ -227,19 +227,18 @@ export function OrdenForm({
         );
       }
 
-      // Sync a Google Sheets (fire and forget)
-      const { data: ordenCompleta } = await supabase
-        .from("ordenes")
-        .select("*, cliente:clientes(*), orden_items(*, producto:productos(*))")
-        .eq("id", ordenId)
-        .single();
-      if (ordenCompleta) {
-        fetch("/api/sheets/sync-orden", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orden: ordenCompleta, accion: editando ? "actualizar" : "crear" }),
-        }).catch(() => {});
-      }
+      // Sync a Google Sheets — usar datos ya disponibles en memoria
+      const syncOrden = {
+        id: ordenId,
+        ...datosOrden,
+        cliente: { nit, nombre: nombreCliente },
+        orden_items: validItems.map((i) => ({ producto_id: i.producto_id, cantidad: i.cantidad })),
+      };
+      fetch("/api/sheets/sync-orden", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orden: syncOrden, accion: editando ? "actualizar" : "crear" }),
+      }).catch(() => {});
 
       router.push(`/ordenes/${ordenId}`);
       router.refresh();
