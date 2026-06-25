@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { SKUS, stockVacio, productoToSkuKey } from "@/lib/inventario";
 import type { Orden, OrdenHistorial } from "@/types";
 import {
   formatDate,
@@ -89,6 +90,28 @@ export function OrdenDetalle({
       usuario: userEmail,
       notas: notas || null,
     });
+
+    // Auto-DESPACHO en inventario Ericka cuando se entrega una orden de Ericka
+    if (nuevoEstado === "ENTREGADO" && orden.medio_envio === "ERICKA" && orden.orden_items?.length) {
+      const skuCounts = stockVacio();
+      for (const item of orden.orden_items) {
+        if (!item.producto) continue;
+        const key = productoToSkuKey(item.producto.nombre);
+        if (key) skuCounts[key] += item.cantidad;
+      }
+      const totalUnidades = SKUS.reduce((s, sku) => s + skuCounts[sku.key], 0);
+      if (totalUnidades > 0) {
+        const payload: Record<string, unknown> = {
+          fecha: new Date().toISOString().slice(0, 10),
+          tipo: "DESPACHO",
+          referencia: `Orden ${orden.id.slice(0, 8).toUpperCase()} — ${orden.cliente?.nombre ?? ""}`,
+          notas: "Generado automáticamente al marcar como Entregado",
+          total_unidades: -totalUnidades,
+        };
+        for (const sku of SKUS) payload[sku.key] = -skuCounts[sku.key];
+        await supabase.from("ericka_movimientos").insert(payload);
+      }
+    }
 
     setOrden((prev) => ({ ...prev, estado_comercial: nuevoEstado as Orden["estado_comercial"] }));
     setNotas("");

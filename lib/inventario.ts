@@ -128,6 +128,18 @@ export function getOptimos(config: ConfigEricka | null): StockPorSku {
   return opt;
 }
 
+export function productoToSkuKey(nombre: string): SkuKey | null {
+  const n = nombre.toLowerCase();
+  if (n.includes("especial") || n.includes("daniel")) return "especial_daniel";
+  if (n.includes("honey") || n.includes("chipotle")) return "honey_chipotle";
+  if (n.includes("lemon") || n.includes("pepper")) return "lemon_pepper";
+  if (n.includes("teriyaki")) return "teriyaki";
+  if (n.includes("palito")) return "palitos_26g";
+  if (n.includes("jerky") && n.includes("35")) return "jerky_35g";
+  if (n.includes("jerky") && n.includes("81")) return "jerky_81g";
+  return null;
+}
+
 export function margenColor(pct: number): string {
   if (pct < 80)  return "bg-red-500/15 text-red-500 border-red-500/30";
   if (pct > 120) return "bg-amber-500/15 text-amber-500 border-amber-500/30";

@@ -7,7 +7,7 @@ import {
   SKUS, calcularStock, getOptimos, fetchMovimientos, margenColor,
   type Movimiento, type ConfigEricka, type StockPorSku,
 } from "@/lib/inventario";
-import { Loader2, Plus, Download, ChevronDown, ChevronUp, CheckCircle2, Trash2 } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, CheckCircle2, Trash2, Pencil, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -28,6 +28,9 @@ function InventarioEricka() {
   const [guardando, setGuardando]       = useState(false);
   const [exito, setExito]               = useState(false);
   const [borrando, setBorrando]         = useState<string | null>(null);
+  const [editandoOptimos, setEditandoOptimos] = useState(false);
+  const [optimosEdit, setOptimosEdit]   = useState<Record<string, string>>({});
+  const [guardandoOptimos, setGuardandoOptimos] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -90,30 +93,30 @@ function InventarioEricka() {
     setBorrando(null);
   }
 
-  async function exportarExcel() {
+  function iniciarEditOptimos() {
     if (!optimos) return;
-    const stock = calcularStock(movimientos);
-    const { utils, writeFile } = await import("xlsx");
-    const rows = SKUS.map((sku) => {
-      const actual   = stock[sku.key];
-      const optimo   = optimos[sku.key];
-      const aprobado = parseInt(aprobados[sku.key]) || 0;
-      const final    = actual + aprobado;
-      const margen   = optimo > 0 ? Math.round((final / optimo) * 100) : null;
-      return {
-        SKU:              sku.label,
-        Marca:            sku.marca,
-        "Inv. actual":    actual,
-        Óptimo:           optimo,
-        "Prod. aprobado": aprobado,
-        "Inv. final":     final,
-        "% vs Óptimo":    margen !== null ? `${margen}%` : "—",
-      };
-    });
-    const ws = utils.json_to_sheet(rows);
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, ws, "Control Ericka");
-    writeFile(wb, `control-ericka-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    const edit: Record<string, string> = {};
+    for (const sku of SKUS) edit[sku.key] = String(optimos[sku.key]);
+    setOptimosEdit(edit);
+    setEditandoOptimos(true);
+  }
+
+  async function guardarOptimos() {
+    setGuardandoOptimos(true);
+    const supabase = createClient();
+    const update: Record<string, number> = {};
+    for (const sku of SKUS) update[`${sku.key}_optimo`] = parseInt(optimosEdit[sku.key]) || 0;
+    const { data: cfg } = await supabase.from("ericka_config").select("id").limit(1).single();
+    const { error } = cfg
+      ? await supabase.from("ericka_config").update(update).eq("id", cfg.id)
+      : await supabase.from("ericka_config").insert(update);
+    if (!error) {
+      const newOpt = { ...optimos! };
+      for (const sku of SKUS) newOpt[sku.key] = update[`${sku.key}_optimo`];
+      setOptimos(newOpt);
+    }
+    setEditandoOptimos(false);
+    setGuardandoOptimos(false);
   }
 
   if (loading || !optimos) {
@@ -144,20 +147,12 @@ function InventarioEricka() {
           <h1 className="text-2xl font-bold text-foreground">Control Ericka</h1>
           <p className="text-muted-foreground text-sm">Inventario en consignación</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/inventario/movimiento"
-            className="flex items-center gap-2 bg-foreground text-background text-sm font-semibold rounded-lg px-4 py-2.5 hover:opacity-80 transition-opacity"
-          >
-            <Plus className="w-4 h-4" /> Movimiento
-          </Link>
-          <button
-            onClick={exportarExcel}
-            className="flex items-center gap-2 border border-border text-foreground text-sm font-semibold rounded-lg px-4 py-2.5 hover:bg-secondary transition-colors"
-          >
-            <Download className="w-4 h-4" /> Exportar
-          </button>
-        </div>
+        <Link
+          href="/inventario/movimiento"
+          className="flex items-center gap-2 bg-foreground text-background text-sm font-semibold rounded-lg px-4 py-2.5 hover:opacity-80 transition-opacity"
+        >
+          <Plus className="w-4 h-4" /> Movimiento
+        </Link>
       </div>
 
       {/* ── KPIs ── */}
@@ -193,10 +188,38 @@ function InventarioEricka() {
                 <CheckCircle2 className="w-4 h-4" /> Recibo registrado
               </span>
             )}
+            {editandoOptimos ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setEditandoOptimos(false)}
+                  className="flex items-center gap-1.5 border border-border text-muted-foreground text-sm rounded-lg px-3 py-2 hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" /> Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarOptimos}
+                  disabled={guardandoOptimos}
+                  className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-sm font-semibold rounded-lg px-3 py-2 transition-colors"
+                >
+                  {guardandoOptimos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Guardar óptimos
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={iniciarEditOptimos}
+                className="flex items-center gap-1.5 border border-border text-muted-foreground text-sm rounded-lg px-3 py-2 hover:text-foreground transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" /> Editar óptimos
+              </button>
+            )}
             <button
               type="button"
               onClick={registrarRecibo}
-              disabled={guardando || !SKUS.some((sku) => (parseInt(aprobados[sku.key]) || 0) > 0)}
+              disabled={guardando || editandoOptimos || !SKUS.some((sku) => (parseInt(aprobados[sku.key]) || 0) > 0)}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg px-4 py-2 transition-colors"
             >
               {guardando
@@ -242,7 +265,17 @@ function InventarioEricka() {
                       <span className="ml-2 text-xs text-muted-foreground font-normal">{sku.marca}</span>
                     </td>
                     <td className="px-4 py-3 text-center font-bold text-foreground">{actual}</td>
-                    <td className="px-4 py-3 text-center text-muted-foreground">{optimo}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">
+                      {editandoOptimos ? (
+                        <input
+                          type="number"
+                          min={0}
+                          value={optimosEdit[sku.key] ?? ""}
+                          onChange={(e) => setOptimosEdit((p) => ({ ...p, [sku.key]: e.target.value }))}
+                          className="w-20 bg-background border border-amber-500/50 rounded-lg px-2 py-1 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                        />
+                      ) : optimo}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <input
                         type="number"
