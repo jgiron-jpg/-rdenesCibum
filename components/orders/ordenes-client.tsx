@@ -37,6 +37,7 @@ export function OrdenesClient({
   const [filtroMes, setFiltroMes] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
+  const [filtroEnvio, setFiltroEnvio] = useState("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -79,9 +80,10 @@ export function OrdenesClient({
       if (filtroMes && o.mes !== filtroMes) return false;
       if (filtroFechaDesde && o.fecha_ingreso < filtroFechaDesde) return false;
       if (filtroFechaHasta && o.fecha_ingreso > filtroFechaHasta + "T23:59:59") return false;
+      if (filtroEnvio && o.medio_envio !== filtroEnvio) return false;
       return true;
     });
-  }, [ordenes, search, filtroEstadoProd, filtroEstadoCom, filtroVendedor, filtroMes, filtroFechaDesde, filtroFechaHasta]);
+  }, [ordenes, search, filtroEstadoProd, filtroEstadoCom, filtroVendedor, filtroMes, filtroFechaDesde, filtroFechaHasta, filtroEnvio]);
 
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -167,6 +169,17 @@ export function OrdenesClient({
             ))}
           </select>
 
+          <select
+            value={filtroEnvio}
+            onChange={(e) => { setFiltroEnvio(e.target.value); setPage(0); }}
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          >
+            <option value="">Envío</option>
+            {["ERICKA", "PINGUE", "FORZA", "CAEX", "OTRO"].map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+
           <input
             type="date"
             value={filtroFechaDesde}
@@ -180,9 +193,9 @@ export function OrdenesClient({
             className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           />
         </div>
-        {(search || filtroEstadoProd || filtroEstadoCom || filtroVendedor || filtroMes || filtroFechaDesde || filtroFechaHasta) && (
+        {(search || filtroEstadoProd || filtroEstadoCom || filtroVendedor || filtroMes || filtroFechaDesde || filtroFechaHasta || filtroEnvio) && (
           <button
-            onClick={() => { setSearch(""); setFiltroEstadoProd(""); setFiltroEstadoCom(""); setFiltroVendedor(""); setFiltroMes(""); setFiltroFechaDesde(""); setFiltroFechaHasta(""); setPage(0); }}
+            onClick={() => { setSearch(""); setFiltroEstadoProd(""); setFiltroEstadoCom(""); setFiltroVendedor(""); setFiltroMes(""); setFiltroFechaDesde(""); setFiltroFechaHasta(""); setFiltroEnvio(""); setPage(0); }}
             className="text-xs text-amber-400 hover:text-amber-300"
           >
             Limpiar filtros
