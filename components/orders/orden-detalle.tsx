@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { SKUS, stockVacio, productoToSkuKey } from "@/lib/inventario";
 import type { Orden, OrdenHistorial } from "@/types";
 import {
   formatDate,
@@ -94,41 +93,11 @@ export function OrdenDetalle({
 
     // Auto-DESPACHO en inventario Ericka cuando se entrega una orden de Ericka
     if (nuevoEstado === "ENTREGADO" && orden.medio_envio === "ERICKA") {
-      const PRODUCTO_SKU: Record<string, string> = {
-        "cbaa1e02-aafa-489d-b369-4f8cf636c38e": "especial_daniel",
-        "db599147-9b28-41cf-b965-d370eb087da0": "honey_chipotle",
-        "3b83cdc0-5564-4695-ba5e-3cc78974b468": "lemon_pepper",
-        "2f0dadec-ffc6-42d1-8d50-2281eb81ab4d": "teriyaki",
-        "f84e2d8a-67a2-4cce-b18f-80a9cf588408": "palitos_26g",
-        "e8389401-cd45-48e1-a0d3-94685f93865d": "jerky_35g",
-        "de80e846-0605-4024-83c5-2703dfdb3977": "jerky_81g",
-      };
-
-      const items = orden.orden_items ?? [];
-      console.log("[DESPACHO] orden_items:", items);
-      const skuCounts = stockVacio();
-      for (const item of items) {
-        const key = PRODUCTO_SKU[item.producto_id];
-        console.log("[DESPACHO] item:", item.producto_id, "→ key:", key, "cantidad:", item.cantidad);
-        if (key) skuCounts[key as keyof typeof skuCounts] += item.cantidad;
-      }
-      const totalUnidades = SKUS.reduce((s, sku) => s + skuCounts[sku.key], 0);
-      console.log("[DESPACHO] skuCounts:", skuCounts, "total:", totalUnidades);
-      if (totalUnidades > 0) {
-        const payload: Record<string, unknown> = {
-          fecha: new Date().toISOString().slice(0, 10),
-          tipo: "DESPACHO",
-          referencia: `Orden ${orden.id.slice(0, 8).toUpperCase()} — ${orden.cliente?.nombre ?? ""}`,
-          notas: "Generado automáticamente al marcar como Entregado",
-          total_unidades: -totalUnidades,
-        };
-        for (const sku of SKUS) payload[sku.key] = -skuCounts[sku.key];
-        console.log("[DESPACHO] payload:", payload);
-        const { error: despachoError } = await supabase.from("ericka_movimientos").insert(payload);
-        console.log("[DESPACHO] resultado insert:", despachoError ?? "OK");
-      } else {
-        console.log("[DESPACHO] totalUnidades=0, no se crea movimiento");
-      }
+      fetch("/api/despacho-ericka", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orden_id: orden.id, cliente_nombre: orden.cliente?.nombre ?? "" }),
+      }).catch(() => {});
     }
 
     const ordenActualizada = { ...orden, estado_comercial: nuevoEstado };
