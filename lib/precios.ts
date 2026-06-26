@@ -2,8 +2,7 @@
 // Fuente: ERP CIBUM - Clasificación de precios
 
 export const PUNTOS_DE_VENTA = [
-  "LAS TORRES",
-  "TORRES EXPRESS",
+  "LAS TORRES / TORRES EXPRESS",
   "PUERTA DEL SOL",
   "PEDIDOS YA",
   "OTROS",
@@ -96,7 +95,7 @@ export const NIT_POR_PUNTO: Record<string, string> = {
 };
 
 export function getPrecio(nombreProducto: string, canal: string): number {
-  // Para puntos de venta específicos que son "OTROS", usar precios OTROS
-  const preciosCanal = PRECIOS_POR_CANAL[canal] ?? PRECIOS_POR_CANAL["OTROS"];
+  const canalKey = canal === "LAS TORRES / TORRES EXPRESS" ? "LAS TORRES" : canal;
+  const preciosCanal = PRECIOS_POR_CANAL[canalKey] ?? PRECIOS_POR_CANAL["OTROS"];
   return preciosCanal[nombreProducto] ?? PRECIOS_DEFAULT[nombreProducto] ?? 0;
 }

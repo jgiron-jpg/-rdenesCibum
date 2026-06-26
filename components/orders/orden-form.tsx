@@ -66,7 +66,6 @@ export function OrdenForm({
   const [metodoPago, setMetodoPago] = useState(ordenExistente?.metodo_pago ?? "");
   const [formaPago, setFormaPago] = useState(ordenExistente?.forma_pago ?? "CONTADO");
   const [comentarios, setComentarios] = useState(ordenExistente?.comentarios ?? "");
-  const [tipoCliente, setTipoCliente] = useState(ordenExistente?.tipo_cliente ?? "EXISTENTE");
   const [estadoProduccion, setEstadoProduccion] = useState(ordenExistente?.estado_produccion ?? "RECIBIDO");
   const [estadoComercial, setEstadoComercial] = useState(ordenExistente?.estado_comercial ?? "PENDIENTE");
 
@@ -91,13 +90,17 @@ export function OrdenForm({
     ? "CLIENTE REDES SOCIALES"
     : puntoDe || "OTROS";
 
+  // Override de precios por producto (edición manual)
+  const [editandoPrecios, setEditandoPrecios] = useState(false);
+  const [preciosOverride, setPreciosOverride] = useState<Record<string, number>>({});
+
   const marcas = useMemo(() => Array.from(new Set(productos.map((p) => p.marca))), [productos]);
 
   const totalUnidades = Object.values(items).reduce((s, qty) => s + qty, 0);
   const totalQ = productos.reduce((s, prod) => {
     const qty = items[prod.id] ?? 0;
     if (qty === 0) return s;
-    return s + qty * getPrecio(prod.nombre, canalActivo);
+    return s + qty * (preciosOverride[prod.id] ?? getPrecio(prod.nombre, canalActivo));
   }, 0);
 
   function setQty(productoId: string, qty: number) {
@@ -159,7 +162,7 @@ export function OrdenForm({
         .filter(([, qty]) => qty > 0)
         .map(([productoId, qty]) => {
           const prod = productos.find(p => p.id === productoId);
-          const precio_unitario = prod ? getPrecio(prod.nombre, canalActivo) : 0;
+          const precio_unitario = preciosOverride[productoId] ?? (prod ? getPrecio(prod.nombre, canalActivo) : 0);
           return {
             producto_id: productoId,
             cantidad: qty,
@@ -184,7 +187,6 @@ export function OrdenForm({
         metodo_pago: metodoPago || null,
         forma_pago: formaPago || null,
         comentarios: comentarios || null,
-        tipo_cliente: tipoCliente,
         usuario_red: usuarioRed || null,
         total_unidades: totalUnidades,
         total_q: totalQ,
@@ -381,13 +383,6 @@ export function OrdenForm({
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Tipo cliente</label>
-            <select value={tipoCliente} onChange={e => setTipoCliente(e.target.value)} className={inputClass}>
-              <option value="NUEVO">NUEVO</option>
-              <option value="EXISTENTE">EXISTENTE</option>
-            </select>
-          </div>
         </div>
 
       </div>
@@ -445,11 +440,20 @@ export function OrdenForm({
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-semibold text-foreground">Productos</h3>
-          {canalActivo && (
-            <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-lg">
-              Precios: {canalActivo}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {canalActivo && (
+              <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-lg">
+                Precios: {canalActivo}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => { setEditandoPrecios(p => !p); setPreciosOverride({}); }}
+              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${editandoPrecios ? "border-amber-500/50 text-amber-400 bg-amber-500/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              {editandoPrecios ? "Restaurar precios" : "Editar precios"}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -461,12 +465,27 @@ export function OrdenForm({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {prods.map(prod => {
                     const qty = items[prod.id] ?? 0;
-                    const precio = getPrecio(prod.nombre, canalActivo);
+                    const precioBase = getPrecio(prod.nombre, canalActivo);
+                    const precio = preciosOverride[prod.id] ?? precioBase;
                     return (
                       <div key={prod.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${qty > 0 ? "border-foreground/30 bg-foreground/5" : "border-border bg-background"}`}>
                         <div>
                           <p className="text-sm text-foreground">{prod.nombre}</p>
-                          <p className="text-xs text-muted-foreground">Q {precio.toFixed(2)}</p>
+                          {editandoPrecios ? (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-xs text-muted-foreground">Q</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={preciosOverride[prod.id] ?? precioBase}
+                                onChange={e => setPreciosOverride(prev => ({ ...prev, [prod.id]: parseFloat(e.target.value) || 0 }))}
+                                className="w-20 bg-background border border-amber-500/40 rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Q {precio.toFixed(2)}</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <button type="button" onClick={() => setQty(prod.id, qty - 1)} disabled={qty === 0}
